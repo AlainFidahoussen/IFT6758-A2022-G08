@@ -3,6 +3,9 @@ import click
 import logging
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
+import time
+
+import NHLDataManager
 
 
 @click.command()
@@ -16,6 +19,13 @@ def main(input_filepath, output_filepath):
     logger.info('making final data set from raw data')
 
 
+def download_data():
+    data_manager = NHLDataManager.NHLDataManager()
+    seasons_year = [2016, 2017, 2018, 2019, 2020]
+    data_manager.download_data(seasons_year=seasons_year, is_regular=True) # regular season
+    data_manager.download_data(seasons_year=seasons_year, is_regular=False) # pre-season
+
+
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
@@ -27,4 +37,7 @@ if __name__ == '__main__':
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())
 
-    main()
+    time_start = time.time()
+    download_data()
+    time_end = time.time()
+    print(f'Time spent to download the data: {time_end-time_start}')
