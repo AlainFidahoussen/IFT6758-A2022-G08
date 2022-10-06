@@ -131,7 +131,7 @@ class NHLDataManager:
             return f'{season_year}03{str(game_number).zfill(4)}'
 
 
-    def download_data(self, seasons_year: list, is_regular: bool, path_output="") -> bool:
+    def download_data(self, seasons_year: list, is_regular: bool, path_output="") -> dict:
         """Download data of season "season_year/season_year+1" and put them in the directory specified by path_output.
            By default, this directory is be specified by the environment variable NHL_DATA_DIR.
            If they are already in the directory, they will be read, without being downloaded
@@ -142,8 +142,8 @@ class NHLDataManager:
         :type is_regular: bool
         :param path_output: specific game number
         :type path_output: str
-        :return: True if everything worked fine, False otherwise
-        :rtype: bool
+        :return: a dictionary that contains the data downloaded
+        :rtype: dict
         """
 
         if path_output == "":
@@ -151,7 +151,7 @@ class NHLDataManager:
                 path_output = os.environ["NHL_DATA_DIR"]
             else:
                 print('NHL_DATA_DIR environment is not defined, please defined it before to continue.')
-                return False
+                return None
 
 
         pbar_season = tqdm(seasons_year, position=0)
@@ -198,7 +198,7 @@ class NHLDataManager:
                     json.dump(data_json, open(game_id_path, "w"), indent=4)
                     self.nhl_data[season_year].append(data_json)
 
-        return True
+        return self.nhl_data
 
 
 
