@@ -15,18 +15,26 @@ class NHLDataManager:
         self.season_min = 1950
         self.season_max = datetime.date.today().year
 
-        if "NHL_DATA_DIR" not in os.environ:
-            print('NHL_DATA_DIR environment is not defined ...')
-            if "linux" in platform.platform().lower():
-                os.environ['NHL_DATA_DIR'] = "/tmp/nhl_data_dir"
-                os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
-                print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
-            elif "windows" in platform.platform().lower():
-                os.environ['NHL_DATA_DIR'] = "C:/Temp/nhl_data_dir"
-                os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
-                print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
+        if 'NHL_DATA_DIR' in os.environ:
+            env = os.environ['NHL_DATA_DIR']
+            print(f'This is your NHL_DATA_DIR environment: {env}')
+            pass
+        else:
+            env = input('Enter NHL_DATA_DIR environment: ')
+            if env == '':
+                print('NHL_DATA_DIR environment is not defined ...')
+                if "linux" in platform.platform().lower():
+                    os.environ['NHL_DATA_DIR'] = "/tmp/nhl_data_dir"
+                    os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
+                    print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
+                elif "windows" in platform.platform().lower():
+                    os.environ['NHL_DATA_DIR'] = "C:/Temp/nhl_data_dir"
+                    os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
+                    print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
+                else:
+                    print('Please defined it before to continue.')
             else:
-                print('Please defined it before to continue.')
+                os.environ['NHL_DATA_DIR'] = env
 
 
     def get_data(self):
@@ -64,14 +72,13 @@ class NHLDataManager:
 
         return True
 
-
-    def get_number_of_games(self, season_year: int, is_regular: bool) -> int:
-        """ Returns the number of games played by each time, for a specific season
+    def get_number_of_games(self, season_year: int, is_regular: bool) -> list:
+        """ Returns the all game numbers played by each time, for a specific season
             Input:
               - season_year (int): specific year in format XXXX
-              
+
             Output:
-              - number of games (int)
+              - game_numbers (list)
         """
         
         # Pourrait probablement être déduit à partir des données l'API
@@ -83,12 +90,23 @@ class NHLDataManager:
 
         if is_regular:
             number_of_games = 1271
+            game_numbers = [i for i in range(1, number_of_games + 1)]
             if season_year < 2017:
                 number_of_games = 1230
+                game_numbers = [i for i in range(1, number_of_games + 1)]
         else:
-            number_of_games = 250 # we don't know for pre-season, but just return a raisonable upper limit
+            game_numbers = []
+            ronde = 4
+            matchup = 8
+            game = 7
+            for i in range(1, ronde + 1):
+                for j in range(1, int(matchup) + 1):
+                    for k in range(1, game + 1):
+                        code = int(f'{i}{j}{k}')
+                        game_numbers.append(code)
+                matchup /= 2
 
-        return number_of_games
+        return game_numbers
 
 
     def build_game_id(self, season_year: int, is_regular: bool, game_number: int) -> str:
@@ -106,7 +124,7 @@ class NHLDataManager:
         if is_regular:
             return f'{season_year}02{str(game_number).zfill(4)}'
         else:
-            return f'{season_year}01{str(game_number).zfill(4)}'
+            return f'{season_year}03{str(game_number).zfill(4)}'
 
 
     def download_data(self, seasons_year: list, is_regular: bool, path_output="") -> bool:
@@ -137,7 +155,7 @@ class NHLDataManager:
             if is_regular:
                 path_output_season = os.path.join(path_output, str(season_year), "regular")
             else:
-                path_output_season = os.path.join(path_output, str(season_year), "preseason")
+                path_output_season = os.path.join(path_output, str(season_year), "playoffs")
 
             os.makedirs(path_output_season, exist_ok=True)
 
@@ -147,9 +165,9 @@ class NHLDataManager:
                 continue
 
             self.nhl_data[season_year] = []
-            number_of_games = self.get_number_of_games(season_year, is_regular)
+            game_numbers = self.get_number_of_games(season_year, is_regular)
 
-            for game_number in tqdm(range(1, number_of_games+1), desc=f'Season {season_year} - Game', position=1, leave=True):
+            for game_number in tqdm(game_numbers, desc=f'Season {season_year} - Game', position=1, leave=True):
 
                 # Build the game id and get the path to load/save the json file
                 game_id = self.build_game_id(season_year, is_regular, game_number)
