@@ -23,7 +23,12 @@ def download_data():
     data_manager = NHLDataManager.NHLDataManager()
     seasons_year = [2016, 2017, 2018, 2019, 2020]
     data_manager.download_data(seasons_year=seasons_year, is_regular=True) # regular season
-    data_manager.download_data(seasons_year=seasons_year, is_regular=False) # pre-season
+
+    data_manager_playoff = NHLDataManager.NHLDataManager()
+    data_manager_playoff.download_data(seasons_year=seasons_year, is_regular=False) # playoffs
+
+    data_manager = data_manager + data_manager_playoff # Just to test if the __add__ function works!
+    return data_manager
 
 
 if __name__ == '__main__':
@@ -38,6 +43,6 @@ if __name__ == '__main__':
     load_dotenv(find_dotenv())
 
     time_start = time.time()
-    download_data()
+    data_manager = download_data()
     time_end = time.time()
     print(f'Time spent to download the data: {time_end-time_start}')
