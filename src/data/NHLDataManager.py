@@ -15,23 +15,26 @@ class NHLDataManager:
         self.season_min = 1950
         self.season_max = datetime.date.today().year
 
-        env = input('Enter NHL_DATA_DIR environment: ')
-
-        if env == '':
-            print('NHL_DATA_DIR environment is not defined ...')
-            if "linux" in platform.platform().lower():
-                os.environ['NHL_DATA_DIR'] = "/tmp/nhl_data_dir"
-                os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
-                print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
-            elif "windows" in platform.platform().lower():
-                os.environ['NHL_DATA_DIR'] = "C:/Temp/nhl_data_dir"
-                os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
-                print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
-            else:
-                print('Please defined it before to continue.')
-
+        if 'NHL_DATA_DIR' in os.environ:
+            env = os.environ['NHL_DATA_DIR']
+            print(f'This is your NHL_DATA_DIR environment: {env}')
+            pass
         else:
-            os.environ['NHL_DATA_DIR'] = env
+            env = input('Enter NHL_DATA_DIR environment: ')
+            if env == '':
+                print('NHL_DATA_DIR environment is not defined ...')
+                if "linux" in platform.platform().lower():
+                    os.environ['NHL_DATA_DIR'] = "/tmp/nhl_data_dir"
+                    os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
+                    print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
+                elif "windows" in platform.platform().lower():
+                    os.environ['NHL_DATA_DIR'] = "C:/Temp/nhl_data_dir"
+                    os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
+                    print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
+                else:
+                    print('Please defined it before to continue.')
+            else:
+                os.environ['NHL_DATA_DIR'] = env
 
 
     def get_data(self):
