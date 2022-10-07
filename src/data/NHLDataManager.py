@@ -331,6 +331,24 @@ def get_game_numbers(season_year:int, season_type:str, path_data="") -> list:
     return games_number
 
 
+def get_teams_from_data(nhl_data : dict) -> dict:
+    """Return the teams from the data
+
+    :param nhl_data: data of a specific game already (down)loaded
+    :type nhl_data: dict
+    :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
+    :rtype: dict
+    """
+    try:
+        team_name_away = nhl_data['gameData']['teams']['away']['name']
+        team_abbr_away = nhl_data['gameData']['teams']['away']['abbreviation']
+
+        team_name_home = nhl_data['gameData']['teams']['home']['name']
+        team_abbr_home = nhl_data['gameData']['teams']['home']['abbreviation']
+
+        return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
+    except KeyError:
+        return {}
 
 def get_teams(season_year:int, season_type:str, game_number:int, path_data="") -> dict:
 
@@ -354,16 +372,37 @@ def get_teams(season_year:int, season_type:str, game_number:int, path_data="") -
     if data is None:
         return {}
 
+    return get_teams_from_data(data)
+
+
+
+def get_final_score_from_data(nhl_data : dict) -> dict:
+    """Return the final score of a specific game
+
+    :param nhl_data: data of a specific game already (down)loaded
+    :type nhl_data: dict
+    :return: a dictionary {abbr_home:score, abbr_away:score}
+    :rtype: dict
+    """
+
     try:
-        team_name_away = data['gameData']['teams']['away']['name']
-        team_abbr_away = data['gameData']['teams']['away']['abbreviation']
+        team_abbr_away = nhl_data['gameData']['teams']['away']['abbreviation']
+        team_abbr_home = nhl_data['gameData']['teams']['home']['abbreviation']
 
-        team_name_home = data['gameData']['teams']['home']['name']
-        team_abbr_home = data['gameData']['teams']['home']['abbreviation']
-
-        return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
     except KeyError:
         return {}
+
+
+    try:
+        score_away = nhl_data['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
+        score_home = nhl_data['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
+
+        
+    except KeyError:
+        score_away = 0
+        score_home = 0
+
+    return {team_abbr_home:score_home, team_abbr_away:score_away}
 
 
 def get_final_score(season_year:int, season_type:str, game_number:int, path_data="") -> dict:
@@ -387,23 +426,7 @@ def get_final_score(season_year:int, season_type:str, game_number:int, path_data
     if data is None:
         return {}
 
-    try:
-        team_abbr_away = data['gameData']['teams']['away']['abbreviation']
-        team_abbr_home = data['gameData']['teams']['home']['abbreviation']
+    return get_final_score_from_data(data)
 
-    except KeyError:
-        return {}
-
-
-    try:
-        score_away = data['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
-        score_home = data['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
-
-        
-    except KeyError:
-        score_away = 0
-        score_home = 0
-
-    return {team_abbr_home:score_home, team_abbr_away:score_away}
 
 
