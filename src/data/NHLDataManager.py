@@ -1,6 +1,4 @@
 import datetime
-import platform
-import time
 
 import requests
 
@@ -8,41 +6,46 @@ import json
 import os
 from tqdm.auto import tqdm
 
+import pandas as pd
+
 class NHLDataManager:
 
-    def __init__(self):
-        """Constructor method. Asks for the NHL_DATA_DIR environment variable if it does not exist yet.
+    def __init__(self, data_dir=""):
+        """Constructor method. Asks for the data_dir output directory and put it in
+           the NHL_DATA_DIR environment variable
         """
 
-        self._nhl_data = {}
         self.season_min = 1950
         self.season_max = datetime.date.today().year
+        self._season_types = ["Regular", "Playoffs"]
 
-        if 'NHL_DATA_DIR' in os.environ:
-            env = os.environ['NHL_DATA_DIR']
-            #print(f'This is your NHL_DATA_DIR environment: {env}')
-            pass
+        if data_dir != "":
+            self._data_dir = data_dir
+            os.makedirs(self._data_dir, exist_ok=True)
+
         else:
-            env = input('Enter NHL_DATA_DIR environment: ')
-            if env == '':
-                print('NHL_DATA_DIR environment is not defined ...')
-                if "linux" in platform.platform().lower():
-                    os.environ['NHL_DATA_DIR'] = "/tmp/nhl_data_dir"
-                    os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
-                    print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
-                elif "windows" in platform.platform().lower():
-                    os.environ['NHL_DATA_DIR'] = "C:/Temp/nhl_data_dir"
-                    os.makedirs(os.environ['NHL_DATA_DIR'], exist_ok=True)
-                    print(f"And had been set by default to {os.environ['NHL_DATA_DIR']}")
-                else:
-                    print('Please defined it before to continue.')
+
+            if 'NHL_DATA_DIR' in os.environ:
+                self._data_dir = os.environ['NHL_DATA_DIR']
+                #print(f'This is your NHL_DATA_DIR environment: {self._data_dir}')
+                os.makedirs(self._data_dir, exist_ok=True)
             else:
-                os.environ['NHL_DATA_DIR'] = env
+                print('Please set the NHL_DATA_DIR environment variable')
+                self._data_dir = ""
 
 
     @property
-    def nhl_data(self):
-        return self._nhl_data
+    def data_dir(self):
+        return self._data_dir
+
+    @property
+    def season_types(self):
+        return self._season_types
+
+    @data_dir.setter
+    def data_dir(self, data_dir: str):
+        os.makedirs(data_dir, exist_ok=True)
+        self._data_dir = data_dir
 
 
     def get_url(self, game_id: str) -> str:
@@ -75,11 +78,14 @@ class NHLDataManager:
 
         return True
 
-    def get_number_of_games(self, season_year: int, is_regular: bool) -> list:
+
+    def get_number_of_games(self, season_year: int, season_type: str) -> list:
         """Returns the all game numbers played by each time, for a specific season
 
         :param season_year: specific year in format XXXX
         :type season_year: int
+        :param season_type: "Regular" or "Playoffs"
+        :type season_type: str
         :return: game_numbers
         :rtype: list
         """
@@ -91,7 +97,10 @@ class NHLDataManager:
         if type(season_year) is str:
             season_year = int(season_year)
 
-        if is_regular:
+        if season_type not in self.season_types:
+            return []
+
+        if season_type == "Regular":
             number_of_games = 1271
             if season_year < 2017:
                 number_of_games = 1230
@@ -112,43 +121,55 @@ class NHLDataManager:
         return game_numbers
 
 
-    def build_game_id(self, season_year: int, is_regular: bool, game_number: int) -> str:
+    def build_game_id(self, season_year: int, season_type: str, game_number: int) -> str:
         """Build the game_id, according to the specs:
         https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids
 
         :param season_year: specific year in format XXXX
         :type season_year: int
-        :param is_regular: True if regular season, False if playoffs
-        :type is_regular: bool
+        :param season_type: "Regular" or "Playoffs"
+        :type season_type: str
         :param game_number: specific game number
         :type game_number: int
         :return: game id, should be of length 8
         :rtype: str
         """
-        if is_regular:
+
+        if season_type not in self.season_types:
+            return ""
+
+        if season_type == "Regular":
             return f'{season_year}02{str(game_number).zfill(4)}'
         else:
             return f'{season_year}03{str(game_number).zfill(4)}'
 
 
-    def download_game(self, season_year: list, is_regular: bool, game_number: int, path_output="") -> dict:
+    def load_game(self, season_year: list, season_type: str, game_number: int) -> dict:
+        """Download or read data of a specific game
 
-        if path_output == "":
-            if "NHL_DATA_DIR" in os.environ:
-                path_output = os.environ["NHL_DATA_DIR"]
-            else:
-                print('NHL_DATA_DIR environment is not defined, please defined it before to continue.')
-                return None
+        :param season_year: specific year in format XXXX
+        :type season_year: int
+        :param season_type: "Regular" or "Playoffs"
+        :type season_type: str
+        :param game_number: specific game number
+        :type game_number: int
+        :return: a dictionary that contains the data (down)loaded
+        :rtype: dict
+        """
 
-        if is_regular:
-            path_output_season = os.path.join(path_output, str(season_year), "regular")
-        else:
-            path_output_season = os.path.join(path_output, str(season_year), "playoffs")
+        if self.data_dir == "":
+            print('The data directory not defined, please defined it before to continue.')
+            return None
 
-        os.makedirs(path_output_season, exist_ok=True)
+        if season_type not in self.season_types:
+            return {}
 
-        game_id = self.build_game_id(season_year, is_regular, game_number)
-        game_id_path = os.path.join(path_output_season, f'{game_id}.json')
+        path_output = os.path.join(self.data_dir, str(season_year), season_type)
+
+        os.makedirs(path_output, exist_ok=True)
+
+        game_id = self.build_game_id(season_year, season_type, game_number)
+        game_id_path = os.path.join(path_output, f'{game_id}.json')
 
         # If the json has already been download, just read it and go the next one
         if os.path.exists(game_id_path):
@@ -156,7 +177,7 @@ class NHLDataManager:
                 json_dict = json.load(open(game_id_path))
                 return json_dict
             except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
-                pass
+                return {}
 
         # If not, download and save the json
         url = self.get_url(f'{game_id}')
@@ -166,68 +187,55 @@ class NHLDataManager:
             json.dump(data_json, open(game_id_path, "w"), indent=4)
             return data_json
         else:
-            return None
+            return {}
 
 
 
-    def download_data(self, seasons_year: list, is_regular: bool, path_output="") -> dict:
-        """Download data of season "season_year/season_year+1" and put them in the directory specified by path_output.
-           By default, this directory is be specified by the environment variable NHL_DATA_DIR.
-           If they are already in the directory, they will be read, without being downloaded
+    def download_data(self, seasons_year: list, season_type: str) -> None:
+        """Download all the data of season year and type
+           If they are already downloaded, they will be skipped
 
         :param season_year: specific year in format XXXX
         :type season_year: int
-        :param is_regular: True if regular season, False if playoffs
-        :type is_regular: bool
+        :param season_type: "Regular" or "Playoffs"
+        :type season_type: str
         :param path_output: specific game number
         :type path_output: str
-        :return: a dictionary that contains the data downloaded. The keys are the season year
-        :rtype: dict
         """
 
-        if path_output == "":
-            if "NHL_DATA_DIR" in os.environ:
-                path_output = os.environ["NHL_DATA_DIR"]
-            else:
-                print('NHL_DATA_DIR environment is not defined, please defined it before to continue.')
-                return None
+        if season_type not in self.season_types:
+            return None
+
+        if self.data_dir == "":
+            print('The data directory not defined, please defined it before to continue.')
+            return None
 
 
         pbar_season = tqdm(seasons_year, position=0)
         for season_year in pbar_season:
 
-            if is_regular:
-                path_output_season = os.path.join(path_output, str(season_year), "regular")
-                pbar_season.set_description(f'Season {season_year} - Regular')
-            else:
-                path_output_season = os.path.join(path_output, str(season_year), "playoffs")
-                pbar_season.set_description(f'Season {season_year} - Playoffs')
+            path_data = os.path.join(self.data_dir, str(season_year), season_type)
+            pbar_season.set_description(f'Season {season_year} - {season_type}')
 
-            os.makedirs(path_output_season, exist_ok=True)
+            os.makedirs(path_data, exist_ok=True)
 
             if not self.validate_season_year(season_year):
                 print(f'Cannot download season {season_year}')
                 continue
 
-            self.nhl_data[season_year] = []
-            game_numbers = self.get_number_of_games(season_year, is_regular)
+            game_numbers = self.get_number_of_games(season_year, season_type)
 
             pbar_game = tqdm(game_numbers, position=1, leave=True)
             for game_number in pbar_game:
                 pbar_game.set_description(f'Game {game_number}')
 
                 # Build the game id and get the path to load/save the json file
-                game_id = self.build_game_id(season_year, is_regular, game_number)
-                game_id_path = os.path.join(path_output_season, f'{game_id}.json')
+                game_id = self.build_game_id(season_year, season_type, game_number)
+                game_id_path = os.path.join(path_data, f'{game_id}.json')
 
                 # If the json has already been download, just read it and go the next one
                 if os.path.exists(game_id_path):
-                    try:
-                        json_dict = json.load(open(game_id_path))
-                        self.nhl_data[season_year].append(json_dict)
-                        continue
-                    except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
-                        pass
+                    continue
 
                 # If not, download and save the json
                 url = self.get_url(f'{game_id}')
@@ -235,198 +243,297 @@ class NHLDataManager:
                 if r.status_code == 200:
                     data_json = r.json()
                     json.dump(data_json, open(game_id_path, "w"), indent=4)
-                    self.nhl_data[season_year].append(data_json)
 
-        return self.nhl_data
-
+        return None
 
 
-    def __add__(self, other_data):
-        """Add a new season to the current object
+    def load_data(self, season_year:int, season_type:str) -> dict:
+        """ Load data in a
 
-        :param other_data: another instance that contains some data
-        :type other_data: NHLDataManager
-        :return: the object self with data added for 'other_data'
-        :rtype: self
+        :param season_year: specific year in format XXXX
+        :type season_year: int
+        :param season_type: "Regular" or "Playoffs"
+        :type season_type: str
+        :return: a dictionary that contains the data. The keys are the game number
+        :rtype: dict
         """
 
-        for keys in other_data.nhl_data.keys():
+        if season_type not in self.season_types:
+            return {}
 
-            # Si la clé (l'année) n'existe pas, on la prend entièrement de 'other_data'
-            if keys not in self.nhl_data.keys():
-                self.nhl_data[keys] = other_data.nhl_data[keys]
-            # Si la clé (l'année) existe déjà, on rajoute simplement les nouvelles données non déjà présentes
-            else:
-                for data in other_data.nhl_data[keys]:
-                    if data not in self.nhl_data[keys]:
-                        self.nhl_data[keys].append(data)
+        if self.data_dir == "":
+            print('The data directory not defined, please defined it before to continue.')
+            return {}
 
-        return self
+        nhl_data = {}
 
+        game_numbers = self.get_number_of_games(season_year, season_type)
+        path_data = os.path.join(self.data_dir, str(season_year), season_type)
 
+        pbar_game = tqdm(game_numbers)
+        for game_number in pbar_game:
+            pbar_game.set_description(f'Game {game_number}')
 
-def get_game_ids(season_year:int, season_type:str, path_data="") -> list:
-    """Return the list of game_id for a specific season year and type (regular or playoffs)
+            # Build the game id and get the path to load/save the json file
+            game_id = self.build_game_id(season_year, season_type, game_number)
+            game_id_path = os.path.join(path_data, f'{game_id}.json')
 
-    :param season_year: specific season year
-    :type season_year: int
-    :param season_type: 'Regular' or 'Playoffs'
-    :type season_type: str
-    :param path_data: path where the data will be [read if exist] - [stored if not]
-    :type path_data: str
-    :return: the list of game_id (8 digits)
-    :rtype: list[int]
-    """
+            # If the json has already been download, just read it and go the next one
+            if os.path.exists(game_id_path):
+                try:
+                    json_dict = json.load(open(game_id_path))
+                    nhl_data[game_number].append(json_dict)
+                except json.JSONDecodeError:  # if the json file is not valid, retrieve it from the API
+                    continue
 
-    if path_data=="":
-        path_data = os.environ["NHL_DATA_DIR"]
-
-    if season_type.lower() == "regular":
-        path_data = os.path.join(path_data, str(season_year), "Regular")
-    elif (season_type.lower() == "playoff") | (season_type.lower() == "playoffs"):
-        path_data = os.path.join(path_data, str(season_year), "playoffs")
-
-    if not os.path.exists(path_data):
-        data_manager = NHLDataManager(path_data)
-        data_manager.download_data(seasons_year=[season_year], is_regular=(season_type.lower() == "regular"), path_output=path_data)
-
-    json_files = os.listdir(path_data)
-    json_files = [f for f in json_files if f.endswith('.json')]
-    
-    games_id = [int(f[0:8]) for f in json_files]
-
-    return games_id
+        return nhl_data
 
 
-def get_game_numbers(season_year:int, season_type:str, path_data="") -> list:
-    """Return the list of game number for a specific season year and type (regular or playoffs)
+    def get_game_ids(self, season_year:int, season_type:str) -> list:
+        """Return the list of game_id for a specific season year and type (regular or playoffs)
 
-    :param season_year: specific season year
-    :type season_year: int
-    :param season_type: 'Regular' or 'Playoffs'
-    :type season_type: str
-    :param path_data: path where the data will be [read if exist] - [stored if not]
-    :type path_data: str
-    :return: the list of game number (3 or 4 digits)
-    :rtype: list[int]
-    """
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param path_data: path where the data will be [read if exist] - [stored if not]
+        :type path_data: str
+        :return: the list of game_id (8 digits)
+        :rtype: list[int]
+        """
 
-    if path_data=="":
-        path_data = os.environ["NHL_DATA_DIR"]
+        if season_type not in self.season_types:
+            return {}
 
-    if season_type.lower() == "regular":
-        path_data = os.path.join(path_data, str(season_year), "Regular")
-    elif (season_type.lower() == "playoff") | (season_type.lower() == "playoffs"):
-        path_data = os.path.join(path_data, str(season_year), "playoffs")
+        if self.data_dir == "":
+            print('The data directory not defined, please defined it before to continue.')
+            return None
 
-    if not os.path.exists(path_data):
-        data_manager = NHLDataManager(path_data)
-        data_manager.download_data(seasons_year=[season_year], is_regular=(season_type.lower() == "regular"), path_output=path_data)
+        path_data = os.path.join(self.data_dir, str(season_year), season_type)
 
-    json_files = os.listdir(path_data)
-    json_files = [f for f in json_files if f.endswith('.json')]
-    
-    games_number = [int(f[6:10]) for f in json_files]
+        if not os.path.exists(path_data):
+            self.download_data(seasons_year=[season_year], season_type=season_type)
 
-    return games_number
+        json_files = os.listdir(path_data)
+        json_files = [f for f in json_files if f.endswith('.json')]
 
+        games_id = [int(f[0:8]) for f in json_files]
 
-def get_teams_from_data(nhl_data : dict) -> dict:
-    """Return the teams from the data
-
-    :param nhl_data: data of a specific game already (down)loaded
-    :type nhl_data: dict
-    :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
-    :rtype: dict
-    """
-    try:
-        team_name_away = nhl_data['gameData']['teams']['away']['name']
-        team_abbr_away = nhl_data['gameData']['teams']['away']['abbreviation']
-
-        team_name_home = nhl_data['gameData']['teams']['home']['name']
-        team_abbr_home = nhl_data['gameData']['teams']['home']['abbreviation']
-
-        return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
-    except KeyError:
-        return {}
-
-def get_teams(season_year:int, season_type:str, game_number:int, path_data="") -> dict:
-
-    """Return the teams of a specific game
-
-    :param season_year: specific season year
-    :type season_year: int
-    :param season_type: 'Regular' or 'Playoffs'
-    :type season_type: str
-    :param game_num: specific game number (could be get from the get_game_numbers() function)
-    :type game_num: int
-    :param path_data: path where the data will be [read if exist] - [stored if not]
-    :type path_data: str
-    :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
-    :rtype: dict
-    """
-
-    data_manager = NHLDataManager()
-    data = data_manager.download_game(season_year=season_year, is_regular=(season_type.lower() == "regular"), game_number=game_number, path_output=path_data)
-
-    if data is None:
-        return {}
-
-    return get_teams_from_data(data)
+        return games_id
 
 
+    def get_game_numbers(self, season_year:int, season_type:str) -> list:
+        """Return the list of game number for a specific season year and type (regular or playoffs)
 
-def get_final_score_from_data(nhl_data : dict) -> dict:
-    """Return the final score of a specific game
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :return: the list of game number (3 or 4 digits)
+        :rtype: list[int]
+        """
 
-    :param nhl_data: data of a specific game already (down)loaded
-    :type nhl_data: dict
-    :return: a dictionary {abbr_home:score, abbr_away:score}
-    :rtype: dict
-    """
+        if season_type not in self.season_types:
+            return {}
 
-    try:
-        team_abbr_away = nhl_data['gameData']['teams']['away']['abbreviation']
-        team_abbr_home = nhl_data['gameData']['teams']['home']['abbreviation']
+        if self.data_dir == "":
+            print('The data directory not defined, please defined it before to continue.')
+            return None
 
-    except KeyError:
-        return {}
+        path_data = os.path.join(self.data_dir, str(season_year), season_type)
 
+        if not os.path.exists(path_data):
+            self.download_data(seasons_year=[season_year], season_type=season_type)
 
-    try:
-        score_away = nhl_data['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
-        score_home = nhl_data['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
+        json_files = os.listdir(path_data)
+        json_files = [f for f in json_files if f.endswith('.json')]
 
-        
-    except KeyError:
-        score_away = 0
-        score_home = 0
+        games_number = [int(f[6:10]) for f in json_files]
 
-    return {team_abbr_home:score_home, team_abbr_away:score_away}
+        return games_number
 
 
-def get_final_score(season_year:int, season_type:str, game_number:int, path_data="") -> dict:
-    """Return the final score of a specific game
+    def get_teams_from_game(self, nhl_data_game : dict) -> dict:
+        """Return the teams from the data
 
-    :param season_year: specific season year
-    :type season_year: int
-    :param season_type: 'Regular' or 'Playoffs'
-    :type season_type: str
-    :param game_num: specific game number (could be get from the get_game_numbers() function)
-    :type game_num: int
-    :param path_data: path where the data will be [read if exist] - [stored if not]
-    :type path_data: str
-    :return: a dictionary {abbr_home:score, abbr_away:score}
-    :rtype: dict
-    """
+        :param nhl_data_game: data of a specific game already (down)loaded
+        :type nhl_data_game: dict
+        :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
+        :rtype: dict
+        """
+        try:
+            team_name_away = nhl_data_game['gameData']['teams']['away']['name']
+            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
 
-    data_manager = NHLDataManager()
-    data = data_manager.download_game(season_year=season_year, is_regular=(season_type.lower() == "regular"), game_number=game_number, path_output=path_data)
+            team_name_home = nhl_data_game['gameData']['teams']['home']['name']
+            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
 
-    if data is None:
-        return {}
+            return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
+        except KeyError:
+            return {}
 
-    return get_final_score_from_data(data)
+
+    def get_teams(self, season_year:int, season_type:str, game_number:int) -> dict:
+
+        """Return the teams of a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :param path_data: path where the data will be [read if exist] - [stored if not]
+        :type path_data: str
+        :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
+        :rtype: dict
+        """
+
+        data_manager = NHLDataManager()
+        data = data_manager.load_game(season_year=season_year, season_type=season_type, game_number=game_number)
+
+        if data is None:
+            return {}
+
+        return self.get_teams_from_game(data)
 
 
 
+    def get_final_score_from_game(self, nhl_data_game : dict) -> dict:
+        """Return the final score of a specific game
+
+        :param nhl_data_game: data of a specific game already (down)loaded
+        :type nhl_data_game: dict
+        :return: a dictionary {abbr_home:score, abbr_away:score}
+        :rtype: dict
+        """
+
+        try:
+            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
+            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
+
+        except KeyError:
+            return {}
+
+
+        try:
+            score_away = nhl_data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
+            score_home = nhl_data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
+
+
+        except KeyError:
+            score_away = 0
+            score_home = 0
+
+        return {team_abbr_home:score_home, team_abbr_away:score_away}
+
+
+    def get_final_score(self, season_year:int, season_type:str, game_number:int) -> dict:
+        """Return the final score of a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a dictionary {abbr_home:score, abbr_away:score}
+        :rtype: dict
+        """
+
+        data = self.load_game(season_year=season_year, season_type=season_type, game_number=game_number)
+
+        if data is None:
+            return {}
+
+        return self.get_final_score_from_game(data)
+
+
+    def get_goals_and_shots(self, season_year:int, season_type:str, game_number:int) -> tuple:
+        """Return the goals and shots event from a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a tuple {goals events, shots events}
+        :rtype: tuple
+        """
+
+        data = self.load_game(season_year, season_type, game_number)
+        game_id = data['gamePk']
+        data = data['liveData']['plays']
+        num_events = len(data['allPlays'])
+
+        list_goals = data['scoringPlays']
+        goal_events = [data['allPlays'][g] for g in list_goals]
+
+        shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Hit']
+
+        return (goal_events, shot_events)
+
+
+    def get_goals_and_shots_df(self, season_year:int, season_type:str, game_number:int) -> pd.DataFrame:
+        """Return the goals and shots event from a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a data frame
+        :rtype: pd.DataFrame
+        """
+
+        (goal_events, shot_events) = self.get_goals_and_shots(season_year, season_type, game_number)
+        game_id = self.build_game_id(season_year, season_type, game_number)
+
+        num_events = len(goal_events) + len(shot_events)
+        df = pd.DataFrame(index=range(num_events),
+                          columns=['Game ID', 'Event ID', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Goalie',
+                                   'Empty Net', 'Strength', 'X', 'Y'])
+
+        count = 0
+        for goal in goal_events:
+            # Difference between eventId and eventIdx
+            df.loc[count]['Event ID'] = goal['about']['eventId']
+            df.loc[count]['Time'] = goal['about']['periodTime']
+            df.loc[count]['Period'] = goal['about']['period']
+            df.loc[count]['Game ID'] = game_id
+            df.loc[count]['Team'] = f"{goal['team']['name']} ({goal['team']['triCode']})"
+            df.loc[count]['X'] = goal['coordinates']['x']
+            df.loc[count]['Y'] = goal['coordinates']['y']
+            df.loc[count]['Type'] = 'GOAL'
+            df.loc[count]['Shooter'] = goal['players'][0]['player']['fullName']
+            df.loc[count]['Goalie'] = goal['players'][-1]['player']['fullName']
+            df.loc[count]['Empty Net'] = goal['result']['emptyNet']
+
+            # Could not be preset ... why ?
+            if 'secondaryType' in goal['result']:
+                df.loc[count]['Shot Type'] = goal['result']['secondaryType']
+
+            df.loc[count]['Strength'] = goal['result']['strength']['name']
+
+            count += 1
+
+        for shot in shot_events:
+            df.loc[count]['Event ID'] = shot['about']['eventId']
+
+            df.loc[count]['Time'] = shot['about']['periodTime']
+            df.loc[count]['Period'] = shot['about']['period']
+            df.loc[count]['Game ID'] = game_id
+            df.loc[count]['Team'] = f"{shot['team']['name']} ({shot['team']['triCode']})"
+            df.loc[count]['X'] = shot['coordinates']['x']
+            df.loc[count]['Y'] = shot['coordinates']['y']
+            df.loc[count]['Type'] = 'SHOT'
+            df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
+            df.loc[count]['Goalie'] = shot['players'][-1]['player']['fullName']
+            #         df.loc[count]['Empty Net'] = shot['result']['emptyNet']
+            #         df.loc[count]['Shot Type'] = # --> Not available
+
+            count += 1
+
+        return df
