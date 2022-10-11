@@ -7,6 +7,8 @@ import os
 from tqdm.auto import tqdm
 
 import pandas as pd
+import numpy as np
+
 
 class NHLDataManager:
 
@@ -469,9 +471,12 @@ class NHLDataManager:
 
         list_goals = data['scoringPlays']
         goal_events = [data['allPlays'][g] for g in list_goals]
+        shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
+        shot_events_index = [data['allPlays'][ev]['about']['eventIdx'] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
 
-        shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Hit']
+        event_types = [data['allPlays'][ev]['result']['event'] for ev in range(num_events)]
 
+        
         return (goal_events, shot_events)
 
 
@@ -493,13 +498,13 @@ class NHLDataManager:
 
         num_events = len(goal_events) + len(shot_events)
         df = pd.DataFrame(index=range(num_events),
-                          columns=['Game ID', 'Event ID', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Goalie',
+                          columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Goalie',
                                    'Empty Net', 'Strength', 'X', 'Y'])
 
         count = 0
         for goal in goal_events:
             # Difference between eventId and eventIdx
-            df.loc[count]['Event ID'] = goal['about']['eventId']
+            df.loc[count]['Event Index'] = goal['about']['eventIdx']
             df.loc[count]['Time'] = goal['about']['periodTime']
             df.loc[count]['Period'] = goal['about']['period']
             df.loc[count]['Game ID'] = game_id
@@ -509,7 +514,10 @@ class NHLDataManager:
             df.loc[count]['Type'] = 'GOAL'
             df.loc[count]['Shooter'] = goal['players'][0]['player']['fullName']
             df.loc[count]['Goalie'] = goal['players'][-1]['player']['fullName']
-            df.loc[count]['Empty Net'] = goal['result']['emptyNet']
+            if 'emptyNet' in goal['result']:
+                df.loc[count]['Empty Net'] = goal['result']['emptyNet']
+            else:
+                df.loc[count]['Empty Net'] = True
 
             # Could not be preset ... why ?
             if 'secondaryType' in goal['result']:
@@ -520,8 +528,7 @@ class NHLDataManager:
             count += 1
 
         for shot in shot_events:
-            df.loc[count]['Event ID'] = shot['about']['eventId']
-
+            df.loc[count]['Event Index'] = shot['about']['eventIdx']
             df.loc[count]['Time'] = shot['about']['periodTime']
             df.loc[count]['Period'] = shot['about']['period']
             df.loc[count]['Game ID'] = game_id
@@ -531,8 +538,9 @@ class NHLDataManager:
             df.loc[count]['Type'] = 'SHOT'
             df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
             df.loc[count]['Goalie'] = shot['players'][-1]['player']['fullName']
+            df.loc[count]['Shot Type'] = goal['result']['secondaryType']
+            
             #         df.loc[count]['Empty Net'] = shot['result']['emptyNet']
-            #         df.loc[count]['Shot Type'] = # --> Not available
 
             count += 1
 
