@@ -12,13 +12,6 @@ Contents:
    :maxdepth: 2
 
    getting-started
+   data-manager
    commands
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

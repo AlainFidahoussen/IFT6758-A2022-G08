@@ -21,9 +21,15 @@ def main(input_filepath, output_filepath):
 
 def download_data():
     data_manager = NHLDataManager.NHLDataManager()
-    seasons_year = [2016, 2017, 2018, 2019, 2020]
-    data_manager.download_data(seasons_year=seasons_year, is_regular=True) # regular season
-    data_manager.download_data(seasons_year=seasons_year, is_regular=False) # pre-season
+    seasons_year = [2016, 2017]
+    nhl_data_regular = data_manager.download_data(seasons_year=seasons_year, is_regular=True)
+    nhl_data_playoffs = data_manager.download_data(seasons_year=seasons_year, is_regular=False)
+
+    nhl_data = {}
+    nhl_data['Regular'] = nhl_data_regular
+    nhl_data['Playoffs'] = nhl_data_playoffs
+
+    return nhl_data
 
 
 if __name__ == '__main__':
@@ -38,6 +44,6 @@ if __name__ == '__main__':
     load_dotenv(find_dotenv())
 
     time_start = time.time()
-    download_data()
+    nhl_data = download_data()
     time_end = time.time()
     print(f'Time spent to download the data: {time_end-time_start}')
