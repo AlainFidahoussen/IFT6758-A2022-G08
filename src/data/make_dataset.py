@@ -22,15 +22,13 @@ def main(input_filepath, output_filepath):
 def download_data():
     data_manager = NHLDataManager.NHLDataManager()
     seasons_year = [2016, 2017]
-    nhl_data_regular = data_manager.download_data(seasons_year=seasons_year, is_regular=True)
-    nhl_data_playoffs = data_manager.download_data(seasons_year=seasons_year, is_regular=False)
+    data_manager.download_data(seasons_year=seasons_year, seaons_type="Regular")
+    data_manager.download_data(seasons_year=seasons_year, season_type="Playoffs")
 
-    nhl_data = {}
-    nhl_data['Regular'] = nhl_data_regular
-    nhl_data['Playoffs'] = nhl_data_playoffs
-
-    return nhl_data
-
+def create_df(season_year, season_type, game_number):
+    data_manager = NHLDataManager.NHLDataManager()
+    df = data_manager.get_goals_and_shots_df(season_year, season_type, game_number)
+    return df
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -43,7 +41,10 @@ if __name__ == '__main__':
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())
 
-    time_start = time.time()
-    nhl_data = download_data()
-    time_end = time.time()
-    print(f'Time spent to download the data: {time_end-time_start}')
+    # time_start = time.time()
+    # download_data()
+    # time_end = time.time()
+    # print(f'Time spent to download the data: {time_end-time_start}')
+
+    season_year, season_type, game_number = 2016, "Regular", 428
+    df = create_df(season_year, season_type, game_number)

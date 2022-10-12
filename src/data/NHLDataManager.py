@@ -465,16 +465,16 @@ class NHLDataManager:
         """
 
         data = self.load_game(season_year, season_type, game_number)
-        game_id = data['gamePk']
+        # game_id = data['gamePk']
         data = data['liveData']['plays']
         num_events = len(data['allPlays'])
 
         list_goals = data['scoringPlays']
         goal_events = [data['allPlays'][g] for g in list_goals]
         shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
-        shot_events_index = [data['allPlays'][ev]['about']['eventIdx'] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
 
-        event_types = [data['allPlays'][ev]['result']['event'] for ev in range(num_events)]
+        # shot_events_index = [data['allPlays'][ev]['about']['eventIdx'] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
+        # event_types = [data['allPlays'][ev]['result']['event'] for ev in range(num_events)]
 
         
         return (goal_events, shot_events)
@@ -509,8 +509,13 @@ class NHLDataManager:
             df.loc[count]['Period'] = goal['about']['period']
             df.loc[count]['Game ID'] = game_id
             df.loc[count]['Team'] = f"{goal['team']['name']} ({goal['team']['triCode']})"
-            df.loc[count]['X'] = goal['coordinates']['x']
-            df.loc[count]['Y'] = goal['coordinates']['y']
+
+            try:
+                df.loc[count]['X'] = goal['coordinates']['x']
+                df.loc[count]['Y'] = goal['coordinates']['y']
+            except KeyError:
+                pass
+
             df.loc[count]['Type'] = 'GOAL'
             df.loc[count]['Shooter'] = goal['players'][0]['player']['fullName']
             df.loc[count]['Goalie'] = goal['players'][-1]['player']['fullName']
@@ -519,7 +524,6 @@ class NHLDataManager:
             else:
                 df.loc[count]['Empty Net'] = True
 
-            # Could not be preset ... why ?
             if 'secondaryType' in goal['result']:
                 df.loc[count]['Shot Type'] = goal['result']['secondaryType']
 
@@ -533,14 +537,19 @@ class NHLDataManager:
             df.loc[count]['Period'] = shot['about']['period']
             df.loc[count]['Game ID'] = game_id
             df.loc[count]['Team'] = f"{shot['team']['name']} ({shot['team']['triCode']})"
-            df.loc[count]['X'] = shot['coordinates']['x']
-            df.loc[count]['Y'] = shot['coordinates']['y']
+
+            try:
+                df.loc[count]['X'] = shot['coordinates']['x']
+                df.loc[count]['Y'] = shot['coordinates']['y']
+            except KeyError:
+                pass
+
             df.loc[count]['Type'] = 'SHOT'
             df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
             df.loc[count]['Goalie'] = shot['players'][-1]['player']['fullName']
-            df.loc[count]['Shot Type'] = goal['result']['secondaryType']
-            
-            #         df.loc[count]['Empty Net'] = shot['result']['emptyNet']
+
+            if 'secondaryType' in goal['result']:
+                df.loc[count]['Shot Type'] = goal['result']['secondaryType']
 
             count += 1
 
