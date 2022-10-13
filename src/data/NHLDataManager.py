@@ -276,6 +276,8 @@ class NHLDataManager:
         for game_number in pbar_game:
             pbar_game.set_description(f'Game {game_number}')
 
+            
+
             # Build the game id and get the path to load/save the json file
             game_id = self.build_game_id(season_year, season_type, game_number)
             game_id_path = os.path.join(path_data, f'{game_id}.json')
@@ -284,7 +286,7 @@ class NHLDataManager:
             if os.path.exists(game_id_path):
                 try:
                     json_dict = json.load(open(game_id_path))
-                    nhl_data[game_number].append(json_dict)
+                    nhl_data[game_number] = json_dict
                 except json.JSONDecodeError:  # if the json file is not valid, retrieve it from the API
                     continue
 
