@@ -103,9 +103,12 @@ class NHLDataManager:
             return []
 
         if season_type == "Regular":
-            number_of_games = 1271
             if season_year < 2017:
                 number_of_games = 1230
+            elif season_year < 2021:
+                number_of_games = 1271
+            else:
+                number_of_games = 1312
 
             game_numbers = list(range(1, number_of_games + 1))
         else:
@@ -250,7 +253,7 @@ class NHLDataManager:
 
 
     def load_data(self, season_year:int, season_type:str) -> dict:
-        """ Load data in a
+        """ Load data in a dictionary
 
         :param season_year: specific year in format XXXX
         :type season_year: int
@@ -276,19 +279,7 @@ class NHLDataManager:
         for game_number in pbar_game:
             pbar_game.set_description(f'Game {game_number}')
 
-            
-
-            # Build the game id and get the path to load/save the json file
-            game_id = self.build_game_id(season_year, season_type, game_number)
-            game_id_path = os.path.join(path_data, f'{game_id}.json')
-
-            # If the json has already been download, just read it and go the next one
-            if os.path.exists(game_id_path):
-                try:
-                    json_dict = json.load(open(game_id_path))
-                    nhl_data[game_number] = json_dict
-                except json.JSONDecodeError:  # if the json file is not valid, retrieve it from the API
-                    continue
+            nhl_data[game_number] = self.load_game(season_year, season_type, game_number)
 
         return nhl_data
 
@@ -357,20 +348,20 @@ class NHLDataManager:
         return games_number
 
 
-    def get_teams_from_game(self, nhl_data_game : dict) -> dict:
-        """Return the teams from the data
+    def get_teams_from_game(self, data_game : dict) -> dict:
+        """Return the teams from a specifid game, already loaded as a dictionary
 
-        :param nhl_data_game: data of a specific game already (down)loaded
-        :type nhl_data_game: dict
+        :param data_game: data of a specific game already (down)loaded
+        :type data_game: dict
         :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
         :rtype: dict
         """
         try:
-            team_name_away = nhl_data_game['gameData']['teams']['away']['name']
-            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
+            team_name_away = data_game['gameData']['teams']['away']['name']
+            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
 
-            team_name_home = nhl_data_game['gameData']['teams']['home']['name']
-            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
+            team_name_home = data_game['gameData']['teams']['home']['name']
+            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
 
             return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
         except KeyError:
@@ -403,8 +394,8 @@ class NHLDataManager:
 
 
 
-    def get_final_score_from_game(self, nhl_data_game : dict) -> dict:
-        """Return the final score of a specific game
+    def get_final_score_from_game(self, data_game : dict) -> dict:
+        """Return the final score of a specific game, already loaded as a dictionary
 
         :param nhl_data_game: data of a specific game already (down)loaded
         :type nhl_data_game: dict
@@ -413,16 +404,16 @@ class NHLDataManager:
         """
 
         try:
-            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
-            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
+            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
+            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
 
         except KeyError:
             return {}
 
 
         try:
-            score_away = nhl_data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
-            score_home = nhl_data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
+            score_away = data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
+            score_home = data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
 
 
         except KeyError:
