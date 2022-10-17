@@ -9,6 +9,9 @@ from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
 
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 
 class NHLDataManager:
 
@@ -103,12 +106,9 @@ class NHLDataManager:
             return []
 
         if season_type == "Regular":
+            number_of_games = 1271
             if season_year < 2017:
                 number_of_games = 1230
-            elif season_year < 2021:
-                number_of_games = 1271
-            else:
-                number_of_games = 1312
 
             game_numbers = list(range(1, number_of_games + 1))
         else:
@@ -253,7 +253,7 @@ class NHLDataManager:
 
 
     def load_data(self, season_year:int, season_type:str) -> dict:
-        """ Load data in a dictionary
+        """ Load data in a
 
         :param season_year: specific year in format XXXX
         :type season_year: int
@@ -279,7 +279,17 @@ class NHLDataManager:
         for game_number in pbar_game:
             pbar_game.set_description(f'Game {game_number}')
 
-            nhl_data[game_number] = self.load_game(season_year, season_type, game_number)
+            # Build the game id and get the path to load/save the json file
+            game_id = self.build_game_id(season_year, season_type, game_number)
+            game_id_path = os.path.join(path_data, f'{game_id}.json')
+
+            # If the json has already been download, just read it and go the next one
+            if os.path.exists(game_id_path):
+                try:
+                    json_dict = json.load(open(game_id_path))
+                    nhl_data[game_number].append(json_dict)
+                except json.JSONDecodeError:  # if the json file is not valid, retrieve it from the API
+                    continue
 
         return nhl_data
 
@@ -348,20 +358,20 @@ class NHLDataManager:
         return games_number
 
 
-    def get_teams_from_game(self, data_game : dict) -> dict:
-        """Return the teams from a specifid game, already loaded as a dictionary
+    def get_teams_from_game(self, nhl_data_game : dict) -> dict:
+        """Return the teams from the data
 
-        :param data_game: data of a specific game already (down)loaded
-        :type data_game: dict
+        :param nhl_data_game: data of a specific game already (down)loaded
+        :type nhl_data_game: dict
         :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
         :rtype: dict
         """
         try:
-            team_name_away = data_game['gameData']['teams']['away']['name']
-            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
+            team_name_away = nhl_data_game['gameData']['teams']['away']['name']
+            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
 
-            team_name_home = data_game['gameData']['teams']['home']['name']
-            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
+            team_name_home = nhl_data_game['gameData']['teams']['home']['name']
+            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
 
             return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
         except KeyError:
@@ -394,8 +404,8 @@ class NHLDataManager:
 
 
 
-    def get_final_score_from_game(self, data_game : dict) -> dict:
-        """Return the final score of a specific game, already loaded as a dictionary
+    def get_final_score_from_game(self, nhl_data_game : dict) -> dict:
+        """Return the final score of a specific game
 
         :param nhl_data_game: data of a specific game already (down)loaded
         :type nhl_data_game: dict
@@ -404,16 +414,16 @@ class NHLDataManager:
         """
 
         try:
-            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
-            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
+            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
+            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
 
         except KeyError:
             return {}
 
 
         try:
-            score_away = data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
-            score_home = data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
+            score_away = nhl_data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
+            score_home = nhl_data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
 
 
         except KeyError:
@@ -547,3 +557,40 @@ class NHLDataManager:
             count += 1
 
         return df
+
+    def get_goals_and_shots_df_standardised(self, season_year:int, season_type:str, game_number:int) -> pd.DataFrame:
+        """Return the same dataframe as get_goals_and_shots_df, but with shot coordinates standardised (goal is always on the right side of the rink)
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a data frame
+        :rtype: pd.DataFrame
+        """
+
+        # Loading data
+        data_manager = NHLDataManager()
+        game_data = data_manager.load_game(season_year, season_type, game_number)
+        goals_and_shots = self.get_goals_and_shots_df(season_year, season_type, game_number)
+
+        # Get period and team info from game data
+        periods = game_data['liveData']['linescore']['periods']
+        home_sides = [period['home']['rinkSide'] == 'left' for period in periods] # True for left, False for right
+        away_sides = [period['away']['rinkSide'] == 'left' for period in periods]
+        home_team = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
+        away_team = game_data['gameData']['teams']['away']['triCode']
+
+        # Computed "standardised" coordinates
+        period_indices = goals_and_shots['Period'] - 1
+        is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
+        sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
+         # boolean array: True if team is on left
+        multiplier = (sides - 0.5) * 2
+        goals_and_shots['st_x'] = multiplier * goals_and_shots['X']
+        goals_and_shots['st_y'] = multiplier * goals_and_shots['Y']
+
+        return goals_and_shots
+
+

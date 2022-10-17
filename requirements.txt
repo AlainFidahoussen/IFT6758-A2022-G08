@@ -103,7 +103,6 @@ sphinxcontrib-htmlhelp==2.0.0
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
--e git+ssh://git@github.com/AlainFidahoussen/IFT6758-A2022-G08.git@2465e68cc84c6155e696628cc483840d38e44162#egg=src
 stack-data==0.5.1
 terminado==0.16.0
 text-unidecode==1.3
