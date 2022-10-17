@@ -84,7 +84,7 @@ class NHLDataManager:
         return True
 
 
-    def get_number_of_games(self, season_year: int, season_type: str) -> list:
+    def get_game_numbers(self, season_year: int, season_type: str) -> list:
         """Returns the all game numbers played by each time, for a specific season
 
         :param season_year: specific year in format XXXX
@@ -109,6 +109,10 @@ class NHLDataManager:
             number_of_games = 1271
             if season_year < 2017:
                 number_of_games = 1230
+            elif season_year < 2021:
+                number_of_games = 1271
+            else:
+                number_of_games = 1312
 
             game_numbers = list(range(1, number_of_games + 1))
         else:
@@ -176,13 +180,13 @@ class NHLDataManager:
         game_id = self.build_game_id(season_year, season_type, game_number)
         game_id_path = os.path.join(path_output, f'{game_id}.json')
 
-        # If the json has already been download, just read it and go the next one
+        # If the json has already been download, just read it 
         if os.path.exists(game_id_path):
             try:
                 json_dict = json.load(open(game_id_path))
                 return json_dict
             except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
-                return {}
+                pass
 
         # If not, download and save the json
         url = self.get_url(f'{game_id}')
@@ -228,7 +232,7 @@ class NHLDataManager:
                 print(f'Cannot download season {season_year}')
                 continue
 
-            game_numbers = self.get_number_of_games(season_year, season_type)
+            game_numbers = self.get_game_numbers(season_year, season_type)
 
             pbar_game = tqdm(game_numbers, position=1, leave=True)
             for game_number in pbar_game:
@@ -238,16 +242,13 @@ class NHLDataManager:
                 game_id = self.build_game_id(season_year, season_type, game_number)
                 game_id_path = os.path.join(path_data, f'{game_id}.json')
 
-                # If the json has already been download, just read it and go the next one
-                if os.path.exists(game_id_path):
-                    continue
-
-                # If not, download and save the json
-                url = self.get_url(f'{game_id}')
-                r = requests.get(url)
-                if r.status_code == 200:
-                    data_json = r.json()
-                    json.dump(data_json, open(game_id_path, "w"), indent=4)
+                # If the json has not already been download yet, do it!
+                if not os.path.exists(game_id_path):
+                   url = self.get_url(f'{game_id}')
+                   r = requests.get(url)
+                   if r.status_code == 200:
+                       data_json = r.json()
+                       json.dump(data_json, open(game_id_path, "w"), indent=4)
 
         return None
 
@@ -272,7 +273,7 @@ class NHLDataManager:
 
         nhl_data = {}
 
-        game_numbers = self.get_number_of_games(season_year, season_type)
+        game_numbers = self.get_game_numbers(season_year, season_type)
         path_data = os.path.join(self.data_dir, str(season_year), season_type)
 
         pbar_game = tqdm(game_numbers)
@@ -287,9 +288,17 @@ class NHLDataManager:
             if os.path.exists(game_id_path):
                 try:
                     json_dict = json.load(open(game_id_path))
-                    nhl_data[game_number].append(json_dict)
+                    nhl_data[game_number] = json_dict
                 except json.JSONDecodeError:  # if the json file is not valid, retrieve it from the API
                     continue
+
+            # Else download it
+            else:
+                url = self.get_url(f'{game_id}')
+                r = requests.get(url)
+                if r.status_code == 200:
+                    data_json = r.json()
+                    json.dump(data_json, open(game_id_path, "w"), indent=4)
 
         return nhl_data
 
@@ -327,7 +336,7 @@ class NHLDataManager:
         return games_id
 
 
-    def get_game_numbers(self, season_year:int, season_type:str) -> list:
+    def get_game_numbers_from_data(self, season_year:int, season_type:str) -> list:
         """Return the list of game number for a specific season year and type (regular or playoffs)
 
         :param season_year: specific season year
