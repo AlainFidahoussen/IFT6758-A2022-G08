@@ -580,25 +580,37 @@ class NHLDataManager:
         """
 
         # Loading data
-        data_manager = NHLDataManager()
-        game_data = data_manager.load_game(season_year, season_type, game_number)
+        game_data = self.load_game(season_year, season_type, game_number)
         goals_and_shots = self.get_goals_and_shots_df(season_year, season_type, game_number)
 
         # Get period and team info from game data
-        periods = game_data['liveData']['linescore']['periods']
-        home_sides = [period['home']['rinkSide'] == 'left' for period in periods] # True for left, False for right
-        away_sides = [period['away']['rinkSide'] == 'left' for period in periods]
-        home_team = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
-        away_team = game_data['gameData']['teams']['away']['triCode']
+        try:
+            periods = game_data['liveData']['linescore']['periods']
+            home_sides = [period['home']['rinkSide'] == 'left' for period in periods] # True for left, False for right
+            away_sides = [period['away']['rinkSide'] == 'left' for period in periods]
+            # check if there's a shootout period, if yes, same side as 3rd period
+            if 'startTime' in game_data['liveData']['linescore']['shootoutInfo']:
+                home_side_shootout = game_data['liveData']['linescore']['periods'][2]['home']['rinkSide'] == 'left'
+                away_side_shootout = game_data['liveData']['linescore']['periods'][2]['away']['rinkSide'] == 'left'
+                home_sides.append(home_side_shootout)
+                away_sides.append(away_side_shootout)
+            else:
+                pass
 
-        # Computed "standardised" coordinates
-        period_indices = goals_and_shots['Period'] - 1
-        is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
-        sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
-         # boolean array: True if team is on left
-        multiplier = (sides - 0.5) * 2
-        goals_and_shots['st_x'] = multiplier * goals_and_shots['X']
-        goals_and_shots['st_y'] = multiplier * goals_and_shots['Y']
+            home_team = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
+            away_team = game_data['gameData']['teams']['away']['triCode']
+
+            # Computed "standardised" coordinates
+            period_indices = goals_and_shots['Period'] - 1
+            is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
+            sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
+             # boolean array: True if team is on left
+            multiplier = (sides - 0.5) * 2
+            goals_and_shots['st_x'] = multiplier * goals_and_shots['X']
+            goals_and_shots['st_y'] = multiplier * goals_and_shots['Y']
+        except: # if no rinkSide info
+            goals_and_shots['st_x'] = np.nan
+            goals_and_shots['st_y'] = np.nan
 
         return goals_and_shots
 
