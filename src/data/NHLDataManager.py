@@ -16,8 +16,12 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 class NHLDataManager:
 
     def __init__(self, data_dir=""):
-        """Constructor method. Asks for the data_dir output directory and put it in
-           the NHL_DATA_DIR environment variable
+        """Constructor method.
+
+        :param data_dir: directory where the data will be downloaded. Created if it does not exist
+                         If not specified, the NHL_DATA_DIR environement variable will be used. 
+                         If the NHL_DATA_DIR environement variable does not exist, it will be asked by the constructor
+        :type data_dir: str (optional)
         """
 
         self.season_min = 1950
@@ -53,7 +57,7 @@ class NHLDataManager:
         self._data_dir = data_dir
 
 
-    def get_url(self, game_id: str) -> str:
+    def _get_url(self, game_id: str) -> str:
         """Returns the url used to get the data for a specifif game id
 
         :param game_id: should be built according to the specs:
@@ -189,7 +193,7 @@ class NHLDataManager:
                 pass
 
         # If not, download and save the json
-        url = self.get_url(f'{game_id}')
+        url = self._get_url(f'{game_id}')
         r = requests.get(url)
         if r.status_code == 200:
             data_json = r.json()
@@ -244,7 +248,7 @@ class NHLDataManager:
 
                 # If the json has not already been download yet, do it!
                 if not os.path.exists(game_id_path):
-                   url = self.get_url(f'{game_id}')
+                   url = self._get_url(f'{game_id}')
                    r = requests.get(url)
                    if r.status_code == 200:
                        data_json = r.json()
@@ -254,7 +258,7 @@ class NHLDataManager:
 
 
     def load_data(self, season_year:int, season_type:str) -> dict:
-        """ Load data in a dictionary
+        """ Load data of a whole season in a dictionary
 
         :param season_year: specific year in format XXXX
         :type season_year: int
@@ -294,7 +298,7 @@ class NHLDataManager:
 
             # Else download it
             else:
-                url = self.get_url(f'{game_id}')
+                url = self._get_url(f'{game_id}')
                 r = requests.get(url)
                 if r.status_code == 200:
                     data_json = r.json()
@@ -303,7 +307,7 @@ class NHLDataManager:
         return nhl_data
 
 
-    def get_game_ids(self, season_year:int, season_type:str) -> list:
+    def _get_game_ids(self, season_year:int, season_type:str) -> list:
         """Return the list of game_id for a specific season year and type (regular or playoffs)
 
         :param season_year: specific season year
@@ -367,20 +371,20 @@ class NHLDataManager:
         return games_number
 
 
-    def get_teams_from_game(self, nhl_data_game : dict) -> dict:
+    def get_teams_from_game(self, data_game : dict) -> dict:
         """Return the teams from the data
 
-        :param nhl_data_game: data of a specific game already (down)loaded
-        :type nhl_data_game: dict
+        :param data_game: data of a specific game already (down)loaded
+        :type data_game: dict
         :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
         :rtype: dict
         """
         try:
-            team_name_away = nhl_data_game['gameData']['teams']['away']['name']
-            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
+            team_name_away = data_game['gameData']['teams']['away']['name']
+            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
 
-            team_name_home = nhl_data_game['gameData']['teams']['home']['name']
-            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
+            team_name_home = data_game['gameData']['teams']['home']['name']
+            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
 
             return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
         except KeyError:
@@ -413,26 +417,26 @@ class NHLDataManager:
 
 
 
-    def get_final_score_from_game(self, nhl_data_game : dict) -> dict:
+    def get_final_score_from_game(self, data_game : dict) -> dict:
         """Return the final score of a specific game
 
-        :param nhl_data_game: data of a specific game already (down)loaded
-        :type nhl_data_game: dict
+        :param data_game: data of a specific game already (down)loaded
+        :type data_game: dict
         :return: a dictionary {abbr_home:score, abbr_away:score}
         :rtype: dict
         """
 
         try:
-            team_abbr_away = nhl_data_game['gameData']['teams']['away']['abbreviation']
-            team_abbr_home = nhl_data_game['gameData']['teams']['home']['abbreviation']
+            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
+            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
 
         except KeyError:
             return {}
 
 
         try:
-            score_away = nhl_data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
-            score_home = nhl_data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
+            score_away = data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
+            score_home = data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
 
 
         except KeyError:
@@ -443,7 +447,7 @@ class NHLDataManager:
 
 
     def get_final_score(self, season_year:int, season_type:str, game_number:int) -> dict:
-        """Return the final score of a specific game
+        """Return the final score of a specific game as a dictionary
 
         :param season_year: specific season year
         :type season_year: int
@@ -606,11 +610,11 @@ class NHLDataManager:
             sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
              # boolean array: True if team is on left
             multiplier = (sides - 0.5) * 2
-            goals_and_shots['st_x'] = multiplier * goals_and_shots['X']
-            goals_and_shots['st_y'] = multiplier * goals_and_shots['Y']
+            goals_and_shots['st_X'] = multiplier * goals_and_shots['X']
+            goals_and_shots['st_Y'] = multiplier * goals_and_shots['Y']
         except: # if no rinkSide info
-            goals_and_shots['st_x'] = np.nan
-            goals_and_shots['st_y'] = np.nan
+            goals_and_shots['st_X'] = np.nan
+            goals_and_shots['st_Y'] = np.nan
 
         return goals_and_shots
 
