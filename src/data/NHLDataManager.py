@@ -606,11 +606,11 @@ class NHLDataManager:
             sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
              # boolean array: True if team is on left
             multiplier = (sides - 0.5) * 2
-            goals_and_shots['st_X'] = multiplier * goals_and_shots['X']
-            goals_and_shots['st_Y'] = multiplier * goals_and_shots['Y']
+            goals_and_shots['st_x'] = multiplier * goals_and_shots['X']
+            goals_and_shots['st_y'] = multiplier * goals_and_shots['Y']
         except: # if no rinkSide info
-            goals_and_shots['st_X'] = np.nan
-            goals_and_shots['st_Y'] = np.nan
+            goals_and_shots['st_x'] = np.nan
+            goals_and_shots['st_y'] = np.nan
 
         return goals_and_shots
 
