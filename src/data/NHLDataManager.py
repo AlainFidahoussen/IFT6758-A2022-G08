@@ -254,7 +254,7 @@ class NHLDataManager:
 
 
     def load_data(self, season_year:int, season_type:str) -> dict:
-        """ Load data in a
+        """ Load data in a dictionary
 
         :param season_year: specific year in format XXXX
         :type season_year: int

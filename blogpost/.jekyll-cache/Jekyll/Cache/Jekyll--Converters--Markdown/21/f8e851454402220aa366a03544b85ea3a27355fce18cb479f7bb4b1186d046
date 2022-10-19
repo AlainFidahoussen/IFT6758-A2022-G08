@@ -1,0 +1,118 @@
+I"#'<h2 id="question-1--acquisition-des-données">Question 1 : Acquisition des données</h2>
+
+<p>Les lignes qui vont suivre sont un bref tutoriel permettant de télécharger les données 
+“play-by-play” des matchs de NHL à l’aide de notre code, disponible sur GitHub : <br />
+<a href="https://github.com/anw1998/IFT6758-A2022-G08">An Ni Wu</a> <br />
+<a href="https://github.com/THOMAS921">Thomas Rives</a> <br />
+<a href="https://github.com/ruizema">Rui Ze Ma</a> <br />
+<a href="https://github.com/AlainFidahoussen/IFT6758-A2022-G08.git">Alain Fidahoussen</a> <br /></p>
+
+<p>A la fin de ce tutoriel, vous serez en mesure d’obtenir toutes les 
+informations officielles rendues disponibles par l’API des statistiques de la NHL 
+pour les saisons que vous désirez.</p>
+
+<h3 id="étape-1--récupération-du-code">Étape 1 : Récupération du code</h3>
+
+<p>Dans un premier temps, il vous sera nécessaire de récupérer notre code en clonant un des répertoires Git 
+ci-dessus. Pour cela, sur votre terminal, placez-vous à l’endroit où vous souhaitez récupérer le code et exécutez, par exemple, la commande suivante:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">git clone https://github.com/anw1998/IFT6758-A2022-G08
+</span></code></pre></div></div>
+<p>Cette commande une fois exécutée, vous devriez avoir téléchargé un dossier nommé <strong>IFT6758-A2022-G08-master</strong>. Le code permettant de télécharger les jeux de données s’y trouve.</p>
+
+<h3 id="étape-2--définition-de-la-variable-denvironnement">Étape 2 : Définition de la variable d’environnement</h3>
+<p>Pour éviter de multiples requêtes via une API publique, les données demandées sont téléchargées dans un répertoire local. 
+Vous pouvez spécifiez le nom de ce répertoire soit en tant qu’argument du constructeur (cf. étape 3.), soit en définissant la variable d’environnement <em>NHL_DATA_DIR</em>.
+Notez que ce répertoire sera automatiquement créé si non existant.</p>
+
+<h3 id="étape-3--importation-du-module-et-création-du-data-manager">Étape 3 : Importation du module et création du data manager</h3>
+
+<p>Dans le dossier <strong>IFT6758-A2022-G08-master</strong>, lancez l’interpréteur Python (ou créez un 
+fichier .py). Vous devez importer le module NHLDataManager et instanciez un objet :</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">src.data.NHLDataManager</span> <span class="k">as</span> <span class="n">DataManager</span>
+
+<span class="c1"># Les données seront téléchargées dans 'directory_name'
+</span><span class="n">data_manager</span> <span class="o">=</span> <span class="n">DataManager</span><span class="p">.</span><span class="n">NHLDataManager</span><span class="p">(</span><span class="s">'directory_name'</span><span class="p">)</span>
+<span class="c1"># OU
+# Les données seront téléchargées dans la répertoire définit par la 
+# variable d'environnement NHL_DATA_DIR
+</span><span class="n">data_manager</span> <span class="o">=</span> <span class="n">DataManager</span><span class="p">.</span><span class="n">NHLDataManager</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h3 id="étape-4-téléchargement-des-données">Étape 4: Téléchargement des données</h3>
+
+<p>Pour le moment, seul le téléchargement des saisons régulières et des playoffs est supporté.
+Le téléchargement se fait sous la forme d’un fichier <a href="https://en.wikipedia.org/wiki/JSON">json</a> par match, dont le nom est définit 
+par un identificateur unique (<a href="https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids">Game IDs</a>)</p>
+
+<p>Il y a plusieurs façons de télécharger les données :</p>
+<ul>
+  <li>Le téléchargement sur disque d’une ou plusieurs saisons :</li>
+</ul>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Liste des saisons à télécharger
+</span><span class="n">seasons_year</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2016</span><span class="p">,</span> <span class="mi">2017</span><span class="p">,</span> <span class="mi">2018</span><span class="p">]</span>
+
+<span class="c1"># Type de saison (régulière)
+</span><span class="n">season_type</span> <span class="o">=</span> <span class="s">"Regular"</span>
+<span class="n">data_manager</span><span class="p">.</span><span class="n">download_data</span><span class="p">(</span>
+   <span class="n">seasons_year</span><span class="o">=</span><span class="n">seasons_year</span><span class="p">,</span> 
+   <span class="n">season_type</span><span class="o">=</span><span class="n">season_type</span><span class="p">)</span>
+
+<span class="c1"># Type de saison (playoffs)
+</span><span class="n">season_type</span> <span class="o">=</span> <span class="s">"Playoffs"</span>
+<span class="n">data_manager</span><span class="p">.</span><span class="n">download_data</span><span class="p">(</span>
+   <span class="n">seasons_year</span><span class="o">=</span><span class="n">seasons_year</span><span class="p">,</span> 
+   <span class="n">season_type</span><span class="o">=</span><span class="n">season_type</span><span class="p">)</span>
+</code></pre></div></div>
+
+<ul>
+  <li>Le téléchargement sur disque et en mémoire (sous forme d’un dictionaire python) d’un saison entière :</li>
+</ul>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Saison à télécharger
+</span><span class="n">season_year</span> <span class="o">=</span> <span class="mi">2016</span>
+
+<span class="c1"># Type de saison
+</span><span class="n">season_type</span> <span class="o">=</span> <span class="s">"Regular"</span>
+
+<span class="n">data_manager</span><span class="p">.</span><span class="n">load_data</span><span class="p">(</span>
+   <span class="n">season_year</span><span class="o">=</span><span class="n">season_year</span><span class="p">,</span> 
+   <span class="n">season_type</span><span class="o">=</span><span class="n">season_type</span><span class="p">)</span>
+</code></pre></div></div>
+
+<ul>
+  <li>Le téléchargement sur disque et en mémoire (sous forme d’un dictionaire python) d’un match précis :</li>
+</ul>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># Saison à télécharger
+</span><span class="n">season_year</span> <span class="o">=</span> <span class="mi">2016</span>
+
+<span class="c1"># Type de saison
+</span><span class="n">season_type</span> <span class="o">=</span> <span class="s">"Regular"</span>
+
+<span class="c1"># Numéro du match
+</span><span class="n">game_number</span> <span class="o">=</span> <span class="mi">12</span>
+
+<span class="n">data_manager</span><span class="p">.</span><span class="n">load_game</span><span class="p">(</span>
+   <span class="n">season_year</span><span class="o">=</span><span class="n">season_year</span><span class="p">,</span> 
+   <span class="n">season_type</span><span class="o">=</span><span class="n">season_type</span><span class="p">,</span>
+   <span class="n">game_number</span><span class="o">=</span><span class="n">game_number</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Il ne suffit alors à présent plus qu’à vérifier que le téléchargement s’est correctement effectué. Par exemple :</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">data_dir</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">[</span><span class="s">'NHL_DATA_DIR'</span><span class="p">]</span>
+<span class="n">season_year</span><span class="p">,</span> <span class="n">season_type</span> <span class="o">=</span> <span class="mi">2016</span><span class="p">,</span> <span class="s">'Regular'</span>
+<span class="n">path_data</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">season_year</span><span class="p">),</span> <span class="n">season_type</span><span class="p">)</span>
+
+<span class="n">os</span><span class="p">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path_data</span><span class="p">)</span>
+<span class="p">[</span><span class="s">'2016020001.json'</span><span class="p">,</span> <span class="s">'2016020002.json'</span><span class="p">,</span> <span class="s">'2016020003.json'</span><span class="p">,</span> <span class="s">'2016020004.json'</span><span class="p">,</span> <span class="s">'2016020005.json'</span><span class="p">,</span> <span class="s">'2016020006.json'</span><span class="p">,</span> <span class="s">'2016020007.json'</span><span class="p">,</span> <span class="s">'2016020008.json'</span><span class="p">,</span> <span class="s">'2016020009.json'</span><span class="p">,</span> <span class="s">'2016020010.json'</span><span class="p">,</span> <span class="s">'2016020011.json'</span><span class="p">,</span> <span class="s">'2016020012.json'</span><span class="p">,</span> <span class="s">'2016020013.json'</span><span class="p">,</span> <span class="s">'2016020014.json'</span><span class="p">,</span> <span class="s">'2016020015.json'</span><span class="p">,</span> <span class="s">'2016020016.json'</span>
+
+<span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path_data</span><span class="p">))</span>
+<span class="mi">1231</span>
+</code></pre></div></div>
+
+<h2 id="question-2">Question 2</h2>
+
+:ET

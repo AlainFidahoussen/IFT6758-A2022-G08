@@ -1,0 +1,65 @@
+I"�<h2 id="question-1--acquisition-des-données">Question 1 : Acquisition des données</h2>
+
+<p>Les lignes qui vont suivre sont un bref tutoriel permettant de télécharger les données 
+“play-by-play” des matchs de NHL à l’aide de notre code, disponible sur GitHub : <br />
+<a href="https://github.com/anw1998/IFT6758-A2022-G08">An Ni Wu</a> <br />
+<a href="https://github.com/THOMAS921">Thomas Rives</a> <br />
+<a href="https://github.com/ruizema">Rui Ze Ma</a> <br />
+<a href="https://github.com/AlainFidahoussen/IFT6758-A2022-G08.git">Alain Fidahoussen</a> <br /></p>
+
+<p>A la fin de ce tutoriel, vous serez en mesure d’obtenir toutes les 
+informations officielles rendues disponibles par l’API des statistiques de la NHL 
+pour les saisons que vous désirez.</p>
+
+<h3 id="étape-1--récupération-du-code">Étape 1 : Récupération du code</h3>
+
+<p>Dans un premier temps, il vous sera nécessaire de récupérer notre code en clonant un des répertoires Git 
+ci-dessus. Pour cela, sur votre terminal, placez-vous à l’endroit où vous souhaitez récupérer le code et exécutez, par exemple, la commande suivante:</p>
+
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="go">git clone https://github.com/anw1998/IFT6758-A2022-G08
+</span></code></pre></div></div>
+<p>Cette commande une fois exécutée, vous devriez avoir téléchargé un dossier nommé <strong>IFT6758-A2022-G08-master</strong>. Le code permettant de télécharger les jeux de données s’y trouve.</p>
+
+<h3 id="étape-2--définition-de-la-variable-denvironnement">Étape 2 : Définition de la variable d’environnement</h3>
+<p>Pour éviter de multiples requêtes via une API publique, les données demandées sont téléchargées dans un répertoire local. 
+Vous pouvez spécifiez le nom de ce répertoire soit en tant qu’argument du constructeur (cf. étape 3.), soit en définissant la variable d’environnement <em>NHL_DATA_DIR</em>.
+Notez que ce répertoire sera automatiquement créé si non existant.</p>
+
+<h3 id="étape-3--importation-du-module-et-création-du-data-manager">Étape 3 : Importation du module et création du data manager</h3>
+
+<p>Dans le dossier <strong>IFT6758-A2022-G08-master</strong>, lancez l’interpréteur Python (ou créez un 
+fichier .py). Vous devez importer le module NHLDataManager et instanciez un objet :</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">src.data.NHLDataManager</span> <span class="k">as</span> <span class="n">DataManager</span>
+
+<span class="c1"># Les données seront téléchargées dans 'directory_name'
+</span><span class="n">data_manager</span> <span class="o">=</span> <span class="n">DataManager</span><span class="p">.</span><span class="n">NHLDataManager</span><span class="p">(</span><span class="s">'directory_name'</span><span class="p">)</span>
+<span class="c1"># Les données seront téléchargées dans la répertoire défini par la variable d'environnement NHL_DATA_DIR
+</span><span class="n">data_manager</span> <span class="o">=</span> <span class="n">DataManager</span><span class="p">.</span><span class="n">NHLDataManager</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>Vous venez d’initialiser la classe <em>NHLDataManager</em> issu du fichier <em>src/data/NHLDataManager.py</em> qui peut prendre ou non, un nom de répertoire ‘directory_name’ comme vu ci-dessus. 
+Ce répertoire local contiendra une copie des données téléchargées localement, afin d’éviter d’effectuer de multiples requêtes une API publique.</p>
+
+<p>Si aucun répertoire n’est passé en paramètre, le répertoire défini par la variable d’environnement NHL_DATA_DIR</p>
+
+<p>Il est possible de ne passer aucun paramètre lors de l’initialisation auquel cas vos données ne seront pas placées dans un répertoire.</p>
+
+<p>Aux lignes suivantes, ajoutez le code suivant:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">seasons_year</span> <span class="o">=</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">season</span> <span class="n">where</span> <span class="n">season</span> <span class="s">"2016-2017"</span> <span class="ow">is</span> <span class="n">integer</span> <span class="mi">2016</span>
+<span class="n">data_manager</span><span class="p">.</span><span class="n">download_data</span><span class="p">(</span><span class="n">seasons_year</span><span class="o">=</span><span class="n">seasons_year</span><span class="p">,</span> <span class="n">season_type</span><span class="o">=</span><span class="s">"Regular"</span><span class="p">)</span>
+<span class="n">data_manager</span><span class="p">.</span><span class="n">download_data</span><span class="p">(</span><span class="n">seasons_year</span><span class="o">=</span><span class="n">seasons_year</span><span class="p">,</span> <span class="n">season_type</span><span class="o">=</span><span class="s">"Playoffs"</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>La liste <em>seasons_year</em> doit contenir des <strong>int</strong> qui indiqueront les saisons des matchs que vous souhaitez télécharger. Par exemple, si vous souhaitez obtenir les données de tous les matchs des saisons 2016-2017 et 2017-18, il vous faudra écrire seasons_year = [2016,2017].</p>
+
+<h3 id="étape-3-téléchargement-des-données">Étape 3: Téléchargement des données</h3>
+
+<p>Une fois votre fichier .py complété, vous pouvez l’exécuter sur votre terminal et les téléchargements s’effectueront. Il est possible de suivre en temps réel l’avancement des téléchargements sur votre terminal. Vous obtiendrez une fois fini, des dossiers par saison dont les données des matchs de saison régulière et de Playoffs s’y trouvent en format json.</p>
+
+<p>Il est tout a fait possible de réaliser ce tutoriel sur un notebook python auquel cas vos exécutions se feront à l’aide des cellules.</p>
+
+<h2 id="question-2">Question 2</h2>
+
+:ET
