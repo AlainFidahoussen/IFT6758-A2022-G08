@@ -16,15 +16,20 @@ A la fin de ce tutoriel, vous serez en mesure d'obtenir toutes les
 informations officielles rendues disponibles par l'API des statistiques de la NHL 
 pour les saisons que vous désirez.
 
-### Étape 1 : Récupération du code
+### Étape 1 : Récupération du code et création de l'environnement Python
 
-Dans un premier temps, il vous sera nécessaire de récupérer notre code en clonant un des répertoires Git 
-ci-dessus. Pour cela, sur votre terminal, placez-vous à l'endroit où vous souhaitez récupérer le code et exécutez, par exemple, la commande suivante:
+Le code Python peut-être récupérer en clonant un des répertoires Git ci-dessus
 
 ```console
 git clone https://github.com/anw1998/IFT6758-A2022-G08
 ```
-Cette commande une fois exécutée, vous devriez avoir téléchargé un dossier nommé **IFT6758-A2022-G08-master**. Le code permettant de télécharger les jeux de données s'y trouve. 
+Cette commande une fois exécutée, vous devriez avoir téléchargé un dossier nommé **IFT6758-A2022-G08-master**. 
+Il suffit ensuite de créer l'environnement [Conda](https://www.anaconda.com/). Pour cela, vous pouvez 
+utilisez la commande suivante depuis le dossier root du projet : 
+```console
+make create_environment
+source activate NHL
+```
 
 ### Étape 2 : Définition de la variable d'environnement
 Pour éviter de multiples requêtes via une API publique, les données sont téléchargées dans un répertoire local que 
@@ -54,11 +59,10 @@ Le téléchargement se fait sous la forme d'un fichier [json](https://en.wikiped
 par un identificateur unique ([Game IDs](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids))
 
 **La façon recommandée** pour récupérer les données des saisons 2016 à 2020 est de lancer la commande :
-```python
+```console
 make data
 ```
-Les données brutes se trouveront alors dans le sous-répertoire 'raw'. 
-Il est à noter que d'autres données (dataframe, csv) seront calculées et sauvergardées dans le sous-répertoire 'processed'. <br>
+Les données brutes se trouveront alors dans le sous-répertoire 'raw'. <br>
 
 Il est également possible de faire directement appel à certaines fonctions pour :
 
@@ -128,6 +132,9 @@ print(json_files[0:3])
 print(len(json_files))
 1231
 ```
+
+L'ensemble des commandes ci-dessus peuvent être retrouvées dans le jupyter notebook 
+'notebooks/Q1_Acquisition_de_données.ipynb'
 
 ## Question 2
 
