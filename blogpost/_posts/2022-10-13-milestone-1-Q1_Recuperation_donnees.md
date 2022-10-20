@@ -10,7 +10,7 @@ Les lignes qui vont suivre sont un bref tutoriel permettant de télécharger les
 [An Ni Wu](https://github.com/anw1998/IFT6758-A2022-G08) <br>
 [Thomas Rives](https://github.com/THOMAS921) <br>
 [Rui Ze Ma](https://github.com/ruizema) <br>
-[Alain Fidahoussen](https://github.com/AlainFidahoussen/IFT6758-A2022-G08.git) <br>
+[Alain Fidahoussen](https://github.com/AlainFidahoussen/IFT6758-A2022-G08.git){:target="_blank"} <br>
 
 A la fin de ce tutoriel, vous serez en mesure d'obtenir toutes les 
 informations officielles rendues disponibles par l'API des statistiques de la NHL 
@@ -24,7 +24,7 @@ Le code Python peut-être récupérer en clonant un des répertoires Git ci-dess
 git clone https://github.com/anw1998/IFT6758-A2022-G08
 ```
 Cette commande une fois exécutée, vous devriez avoir téléchargé un dossier nommé **IFT6758-A2022-G08-master**. 
-Il suffit ensuite de créer l'environnement [Conda](https://www.anaconda.com/). Pour cela, vous pouvez 
+Il suffit ensuite de créer l'environnement [Conda](https://www.anaconda.com/){:target="_blank"}. Pour cela, vous pouvez 
 utilisez la commande suivante depuis le dossier root du projet : 
 ```console
 make create_environment
@@ -55,8 +55,8 @@ data_manager = DataManager.NHLDataManager()
 ### Étape 4: Téléchargement des données
 
 Pour le moment, seul le téléchargement des saisons régulières et des playoffs est supporté.
-Le téléchargement se fait sous la forme d'un fichier [json](https://en.wikipedia.org/wiki/JSON) par match, dont le nom est définit 
-par un identificateur unique ([Game IDs](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids))
+Le téléchargement se fait sous la forme d'un fichier [json](https://en.wikipedia.org/wiki/JSON){:target="_blank"} par match, dont le nom est définit 
+par un identificateur unique ([Game IDs](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids){:target="_blank"})
 
 **La façon recommandée** pour récupérer les données des saisons 2016 à 2020 est de lancer la commande :
 ```console
