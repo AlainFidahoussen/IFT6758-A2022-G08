@@ -16,9 +16,8 @@ A la fin de ce tutoriel, vous serez en mesure d'obtenir toutes les
 informations officielles rendues disponibles par l'API des statistiques de la NHL 
 pour les saisons que vous désirez.
 
-### Étape 1 : Récupération du code et création de l'environnement Python
-
-Le code Python peut-être récupérer en clonant un des répertoires Git ci-dessus
+### Étape 1 : Récupération du code et création de l'environnement Python <a name="Q1-Step1"></a> 
+Le code Python peut-être récupéré en clonant un des répertoires Git ci-dessus
 
 ```console
 git clone https://github.com/anw1998/IFT6758-A2022-G08
@@ -30,14 +29,17 @@ utilisez la commande suivante depuis le dossier root du projet :
 make create_environment
 source activate NHL
 ```
+### Étape 2 : Définition de la variable d'environnement <a name="Q1-Step2"></a> 
+Pour éviter de multiples requêtes via une API publique, les données sont téléchargées dans un **répertoire local** que 
+vous devez spécifier :
+ - soit en tant qu'argument du constructeur (cf. [étape 3](#Q1-Step3).)
+ - soit en définissant la [variable d'environnement](https://en.wikipedia.org/wiki/Environment_variable#Syntax) *NHL_DATA_DIR*
+ 
+<u>Note 1</u> : il est possible de définir la variable d'environnement *NHL_DATA_DIR* dans un fichier '.env' dans le 
+répertoire root du projet. Elle sera alors automatiquement lue par le code. <br>
+<u>Note 2</u> : le répertoire local sera automatiquement créé si non existant.
 
-### Étape 2 : Définition de la variable d'environnement
-Pour éviter de multiples requêtes via une API publique, les données sont téléchargées dans un répertoire local que 
-vous devez définir soit en tant qu'argument du constructeur (cf. étape 3.), soit par la variable d'environnement *NHL_DATA_DIR*.
-Notez que ce répertoire sera automatiquement créé si non existant.
-
-### Étape 3 : Importation du module et création du data manager
-
+### Étape 3 : Importation du module et création du data manager <a name="Q1-Step3"></a> 
 Depuis le dossier **IFT6758-A2022-G08-master**, lancez l'interpréteur Python (ou créez un 
 fichier .py), importez le module *src.data.NHLDataManager* et instanciez un objet de type *NHLDataManager* :
 
@@ -51,9 +53,7 @@ data_manager = DataManager.NHLDataManager('directory_name')
 # variable d'environnement NHL_DATA_DIR
 data_manager = DataManager.NHLDataManager()
 ```
-
-### Étape 4: Téléchargement des données
-
+### Étape 4: Téléchargement des données <a name="Q1-Step4"></a>
 Pour le moment, seul le téléchargement des saisons régulières et des playoffs est supporté.
 Le téléchargement se fait sous la forme d'un fichier [json](https://en.wikipedia.org/wiki/JSON){:target="_blank"} par match, dont le nom est définit 
 par un identificateur unique ([Game IDs](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids){:target="_blank"})
@@ -62,7 +62,7 @@ par un identificateur unique ([Game IDs](https://gitlab.com/dword4/nhlapi/-/blob
 ```console
 make data
 ```
-Les données brutes se trouveront alors dans le sous-répertoire 'raw'. <br>
+Les données brutes se trouveront alors dans le sous-répertoire 'raw' du répertoire local défini à l'[étape 2](#Q1-Step2). <br>
 
 Il est également possible de faire directement appel à certaines fonctions pour :
 
