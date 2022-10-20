@@ -121,4 +121,13 @@ De plus, les tirs du Lightning sont plus équilibrés, car leurs meilleurs tireu
 et [Nikita Kucherov](https://en.wikipedia.org/wiki/Nikita_Kucherov){:target="_blank"} qui tire à gauche.<br>
  
 Comme supposé à la [section précédente](#Q23), les zones "chaudes" de la heatmap correspondent 
-donc à des joueurs forts dans ces zones.
+donc à des joueurs forts dans ces zones.<br>
+
+L'analyse des heatmap des tirs n'est évidemment pas suffisamment pour effectuer une analyse approfondie 
+de la performance des équipes. Il faudrait également regarder : 
+ - Le ratio tirs/buts pour savoir si une équipe est efficace.
+ - Le nombre d'arrêt, pour savoir si un goal est performant.
+ - La solidité de l'équipe en zone défensive.
+ - La différence de niveau entre les différentes lignes d'attaque et de défense.
+ - Et bien d'autres critères !
+
