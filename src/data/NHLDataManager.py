@@ -585,6 +585,9 @@ class NHLDataManager:
 
         # Loading data
         game_data = self.load_game(season_year, season_type, game_number)
+        if game_data == {}:
+            return None
+
         goals_and_shots = self.get_goals_and_shots_df(season_year, season_type, game_number)
 
         # Get period and team info from game data
@@ -617,5 +620,32 @@ class NHLDataManager:
             goals_and_shots['st_Y'] = np.nan
 
         return goals_and_shots
+
+
+    def get_season_dataframe(self, season_year, season_type):
+
+        dir_df = os.path.join(self.data_dir, "..", "processed", "DataFrame")
+        filename = f'{season_year}_{season_type}.json'
+        path_df = os.path.join(dir_df, filename)
+        if os.path.exists(path_df):
+            data_season_df = pd.read_csv(path_df, index_col=0, dtype={'Game ID': str})
+
+        else:
+            os.makedirs(dir_df, exist_ok=True)
+
+            game_numbers = self.get_game_numbers(season_year=season_year, season_type=season_type)
+            data_season_df = self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_numbers[0])
+
+            pbar_game = tqdm(game_numbers, position=0, leave=True)
+            pbar_game.set_description(f'Game {game_numbers[0]}')
+
+            for game_number in tqdm(game_numbers[1:]):
+                pbar_game.set_description(f'Game {game_number}')
+
+                data_season_df = pd.concat([data_season_df, self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number)], ignore_index=True)
+
+            data_season_df.to_csv(path_df)
+
+        return data_season_df
 
 
