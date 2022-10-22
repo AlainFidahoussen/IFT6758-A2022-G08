@@ -564,7 +564,12 @@ class NHLDataManager:
 
         # Loading data
         game_data = self.load_game(season_year, season_type, game_number)
+        if len(game_data) == 0:
+            return None
+
         goals_and_shots = self.get_goals_and_shots_df(season_year, season_type, game_number)
+        if goals_and_shots is None:
+            return None
 
         # Get period and team info from game data
         try:
@@ -634,7 +639,10 @@ class NHLDataManager:
             for game_number in tqdm(game_numbers[1:]):
                 pbar_game.set_description(f'Game {game_number}')
 
-                data_season_df = pd.concat([data_season_df, self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number)], ignore_index=True)
+                temp_df = self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number)
+                if temp_df is None:
+                    continue
+                data_season_df = pd.concat([data_season_df, temp_df], ignore_index=True)
 
             data_season_df.to_csv(path_csv)
 
