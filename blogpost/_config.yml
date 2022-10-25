@@ -1,7 +1,7 @@
 # Setup
-title:               IFT6758 Blog
-tagline:             'A template based on the Lanyon Jekyll theme'
-description:         'A reserved <a href="https://jekyllrb.com" target="_blank">Jekyll</a> theme that places the utmost gravity on content with a hidden drawer. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
+title:               IFT6758 NHL Blog - Team 08
+tagline:             'Exploration of the NHL API'
+descritpion:         'This blog is about the analysis of some play-by-play data retrieved for the NHL public API: <a href="https://github.com/erunion/sport-api-specifications/tree/master/nhl" target="_blank"></a>.'
 url:                 ''
 baseurl:             ''
 paginate:            5
@@ -9,9 +9,9 @@ permalink:           pretty
 
 # About/contact
 author:
-  name:              Mark Otto
-  url:               https://twitter.com/mdo
-  email:             markdotto@gmail.com
+  name:              An Ni Wu - Thomas Rives - Rui Ze Ma - Alain Fidahoussen
+  url:               https://github.com/anw1998 - https://github.com/THOMAS921 - https://github.com/ruizema - https://github.com/AlainFidahoussen
+  email:             an.ni.wu@umontreal.ca - thomas.rives@umontreal.ca - rui.ze.ma@umontreal.ca - alain.fidahoussen@umontreal.ca
 
 # Gems
 plugins:

@@ -4,26 +4,14 @@ title: About
 ---
 
 <p class="message">
-  Hey there! This page is included as an example. Feel free to customize it for your own use upon downloading. Carry on!
+   Ce blog est consacré à l'exploration et l'analyse des données play-by-play des matchs la NHL.
 </p>
 
-In the novel, *The Strange Case of Dr. Jeykll and Mr. Hyde*, Mr. Poole is Dr. Jekyll's virtuous and loyal butler. Similarly, Poole is an upstanding and effective butler that helps you build Jekyll themes. It's made by [@mdo](https://twitter.com/mdo).
+Pour en apprendre davantage sur l'API utilisé : <br>
+[NHL API](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md)
 
-There are currently two themes built on Poole:
-
-* [Hyde](http://hyde.getpoole.com)
-* [Lanyon](http://lanyon.getpoole.com)
-
-Learn more and contribute on [GitHub](https://github.com/poole).
-
-## Setup
-
-Some fun facts about the setup of this project include:
-
-* Built for [Jekyll](https://jekyllrb.com)
-* Developed on GitHub and hosted for free on [GitHub Pages](https://pages.github.com)
-* Coded with [Atom](https://atom.io)
-
-Have questions or suggestions? Feel free to [open an issue on GitHub](https://github.com/poole/issues/new) or [ask me on Twitter](https://twitter.com/mdo).
-
-Thanks for reading!
+Pour des questions ou suggestions, veuillez créer une requête sur le compte GitHub des auteurs : <br> 
+[An Ni Wu](https://github.com/anw1998/IFT6758-A2022-G08){:target="_blank"} <br>
+[Thomas Rives](https://github.com/THOMAS921){:target="_blank"} <br>
+[Rui Ze Ma](https://github.com/ruizema){:target="_blank"} <br>
+[Alain Fidahoussen](https://github.com/AlainFidahoussen/IFT6758-A2022-G08.git){:target="_blank"} <br>

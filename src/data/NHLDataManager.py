@@ -26,7 +26,7 @@ class NHLDataManager:
 
         self.season_min = 1950
         self.season_max = datetime.date.today().year
-        self._season_types = ["regular", "playoffs", "playoff"]
+        self._season_types = ["Regular", "Playoffs"]
 
         if data_dir != "":
             self._data_dir = data_dir
@@ -85,7 +85,7 @@ class NHLDataManager:
             print(f'Invalid season year, should be between {self.season_min} and {self.season_max}: year={season_year}')
             return False
 
-        if season_type.lower() not in self.season_types:
+        if season_type not in self.season_types:
             print(f'Invalid season type, should be "Regular" or "Playoffs"')
             return False
 
@@ -179,6 +179,7 @@ class NHLDataManager:
             return {}
 
         if not self.validate_season(season_year, season_type):
+            print('Invalid season.')
             return {}
 
         path_output = os.path.join(self.data_dir, "raw", str(season_year), season_type)
