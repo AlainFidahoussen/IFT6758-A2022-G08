@@ -465,10 +465,12 @@ class NHLDataManager:
             list_goals = data['scoringPlays']
             goal_events = [data['allPlays'][g] for g in list_goals]
             shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
+            all_events = [data['allPlays'][ev] for ev in range(num_events)]
         except KeyError:
             return ([], [])
 
-        return (goal_events, shot_events)
+        return (goal_events, shot_events, all_events)
+
 
 
     def get_goals_and_shots_df(self, season_year:int, season_type:str, game_number:int) -> pd.DataFrame:
@@ -484,7 +486,7 @@ class NHLDataManager:
         :rtype: pd.DataFrame
         """
 
-        (goal_events, shot_events) = self.get_goals_and_shots(season_year, season_type, game_number)
+        (goal_events, shot_events, all_events) = self.get_goals_and_shots(season_year, season_type, game_number)
 
         if (len(goal_events) == 0) & (len(shot_events) == 0):
             return None
@@ -494,22 +496,18 @@ class NHLDataManager:
         num_events = len(goal_events) + len(shot_events)
         df = pd.DataFrame(index=range(num_events),
                           columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Goalie',
-                                   'Empty Net', 'Strength', 'X', 'Y'])
+                                   'Empty Net', 'Strength', 'X', 'Y', 'Last event type', 'Last event X', 'Last event Y', 'Last event elapsed time', 'Last event distance'])
 
         count = 0
         for goal in goal_events:
             # Difference between eventId and eventIdx
-            df.loc[count]['Event Index'] = goal['about']['eventIdx']
+            event_idx = goal['about']['eventIdx']
+            df.loc[count]['Event Index'] = event_idx
+
             df.loc[count]['Time'] = goal['about']['periodTime']
             df.loc[count]['Period'] = goal['about']['period']
             df.loc[count]['Game ID'] = game_id
             df.loc[count]['Team'] = f"{goal['team']['name']} ({goal['team']['triCode']})"
-
-            try:
-                df.loc[count]['X'] = goal['coordinates']['x']
-                df.loc[count]['Y'] = goal['coordinates']['y']
-            except KeyError:
-                pass
 
             df.loc[count]['Type'] = 'GOAL'
             df.loc[count]['Shooter'] = goal['players'][0]['player']['fullName']
@@ -524,20 +522,39 @@ class NHLDataManager:
 
             df.loc[count]['Strength'] = goal['result']['strength']['name']
 
+            df.loc[count]['Last event type'] = all_events[event_idx-1]['result']['event']
+
+            try:
+                df.loc[count]['X'] = goal['coordinates']['x']
+                df.loc[count]['Y'] = goal['coordinates']['y']
+
+            except KeyError:
+                pass
+
+            try:
+                df.loc[count]['Last event X'] = all_events[event_idx-1]['coordinates']['x']
+                df.loc[count]['Last event Y'] = all_events[event_idx-1]['coordinates']['y']
+                df.loc[count]['Last event distance'] = np.sqrt( (df.loc[count]['X']-df.loc[count]['Last event X'])**2 + 
+                                                                (df.loc[count]['Y']-df.loc[count]['Last event Y'])**2 )
+            except KeyError:
+                pass
+
+
+
+            time_goal_s = int(goal['about']['periodTime'].split(':')[0]) * 60 + int(goal['about']['periodTime'].split(':')[1])
+            time_event_s = int(all_events[event_idx-1]['about']['periodTime'].split(':')[0]) * 60 + int(all_events[event_idx-1]['about']['periodTime'].split(':')[1])
+            df.loc[count]['Last event elapsed time'] = time_goal_s - time_event_s
+
             count += 1
 
         for shot in shot_events:
-            df.loc[count]['Event Index'] = shot['about']['eventIdx']
+            event_idx = goal['about']['eventIdx']
+            df.loc[count]['Event Index'] = event_idx
+
             df.loc[count]['Time'] = shot['about']['periodTime']
             df.loc[count]['Period'] = shot['about']['period']
             df.loc[count]['Game ID'] = game_id
             df.loc[count]['Team'] = f"{shot['team']['name']} ({shot['team']['triCode']})"
-
-            try:
-                df.loc[count]['X'] = shot['coordinates']['x']
-                df.loc[count]['Y'] = shot['coordinates']['y']
-            except KeyError:
-                pass
 
             df.loc[count]['Type'] = 'SHOT'
             df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
@@ -545,6 +562,29 @@ class NHLDataManager:
 
             if 'secondaryType' in goal['result']:
                 df.loc[count]['Shot Type'] = goal['result']['secondaryType']
+
+            df.loc[count]['Last event type'] = all_events[event_idx-1]['result']['event']
+
+
+            try:
+                df.loc[count]['X'] = shot['coordinates']['x']
+                df.loc[count]['Y'] = shot['coordinates']['y']
+            except KeyError:
+                pass
+
+
+            try:
+                df.loc[count]['Last event X'] = all_events[event_idx-1]['coordinates']['x']
+                df.loc[count]['Last event Y'] = all_events[event_idx-1]['coordinates']['y']
+                df.loc[count]['Last event distance'] = np.sqrt( (df.loc[count]['X']-df.loc[count]['Last event X'])**2 + 
+                                                                (df.loc[count]['Y']-df.loc[count]['Last event Y'])**2 )
+            except KeyError:
+                pass
+
+
+            time_shots_s = int(shot['about']['periodTime'].split(':')[0]) * 60 + int(shot['about']['periodTime'].split(':')[1])
+            time_event_s = int(all_events[event_idx-1]['about']['periodTime'].split(':')[0]) * 60 + int(all_events[event_idx-1]['about']['periodTime'].split(':')[1])
+            df.loc[count]['Last event elapsed time'] = time_shots_s - time_event_s
 
             count += 1
 
