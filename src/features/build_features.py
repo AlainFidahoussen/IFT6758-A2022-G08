@@ -14,7 +14,7 @@ def build_features(seasons_year):
     filename = f'features_data.csv'
     path_csv = os.path.join(dir_csv, filename)
     if os.path.exists(path_csv):
-        features_data_df = pd.read_csv(path_csv, index_col=0, dtype={'Game ID': str})
+        features_data_df = pd.read_csv(path_csv, dtype={'Game ID': str})
     else:
         frames = []
         season_type = "Regular"
@@ -41,7 +41,7 @@ def build_features(seasons_year):
         features_data_df['Game seconds'] = features_data_df.apply(lambda row: int(row['Time'].split(':')[0])*60 + int(row['Time'].split(':')[1]), axis=1)
         features_data_df.drop(['Time'], axis=1, inplace=True)
 
-        features_data_df.to_csv(path_csv)
+        features_data_df.to_csv(path_csv, index=False)
 
     return features_data_df
 

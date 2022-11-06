@@ -666,7 +666,7 @@ class NHLDataManager:
         filename = f'{season_year}_{season_type}.csv'
         path_csv = os.path.join(dir_csv, filename)
         if os.path.exists(path_csv):
-            data_season_df = pd.read_csv(path_csv, index_col=0, dtype={'Game ID': str})
+            data_season_df = pd.read_csv(path_csv, dtype={'Game ID': str})
 
         else:
             os.makedirs(dir_csv, exist_ok=True)
@@ -685,7 +685,7 @@ class NHLDataManager:
                     continue
                 data_season_df = pd.concat([data_season_df, temp_df], ignore_index=True)
 
-            data_season_df.to_csv(path_csv)
+            data_season_df.to_csv(path_csv, index=False)
 
         return data_season_df
 
