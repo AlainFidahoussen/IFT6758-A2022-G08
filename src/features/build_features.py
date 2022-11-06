@@ -30,8 +30,8 @@ def build_features(seasons_year):
         p2 = np.array([0, 0])
 
         # features_data_df['Shot distance'] = features_data_df.apply(lambda row: np.linalg.norm(row[['st_X', 'st_Y']]-net_coordinates), axis=1)
-        features_data_df['Shot distance'] = np.linalg.norm(features_data_df[['st_X', 'st_Y']].to_numpy() - net_coordinates, axis=1) # Goal is located at (89, 0)
-        features_data_df['Shot angle'] = features_data_df.apply(lambda row: calculate_angle(row[['st_X', 'st_Y']].to_numpy(), net_coordinates, p2), axis=1)
+        features_data_df['Shot distance'] = np.linalg.norm(features_data_df[['st_X', 'st_Y']] - net_coordinates, axis=1) # Goal is located at (89, 0)
+        features_data_df['Shot angle'] = features_data_df.apply(lambda row: calculate_angle(row[['st_X', 'st_Y']], net_coordinates, p2), axis=1)
         features_data_df['Is Goal'] = features_data_df.apply(lambda row: 1 if row['Type'] == 'GOAL' else 0, axis=1)
         features_data_df.drop(['Type'], axis=1, inplace=True)
 
