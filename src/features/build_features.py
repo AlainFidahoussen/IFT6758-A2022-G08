@@ -6,23 +6,18 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv();
 
-def build_features(seasons_year):
+
+def build_features_one_season(season_year, season_type="Regular"):
 
     data_manager = DataManager.NHLDataManager()
 
     dir_csv = os.path.join(data_manager.data_dir, "processed", "csv")
-    filename = f'features_data.csv'
+    filename = f'{season_year}_{season_type}_M2.csv'
     path_csv = os.path.join(dir_csv, filename)
     if os.path.exists(path_csv):
         features_data_df = pd.read_csv(path_csv, dtype={'Game ID': str})
     else:
-        frames = []
-        season_type = "Regular"
-        for season_year in seasons_year:
-            data_season_df = data_manager.get_season_dataframe(season_year=season_year, season_type=season_type)
-            frames.append(data_season_df)
-        features_data_df = pd.concat(frames)
-
+        features_data_df = data_manager.get_season_dataframe(season_year=season_year, season_type=season_type)
 
         features_data_df.dropna(subset=['st_X', 'st_Y'], inplace=True)
         features_data_df.reset_index(drop=True, inplace=True)
@@ -44,6 +39,13 @@ def build_features(seasons_year):
 
         features_data_df.to_csv(path_csv, index=False)
 
+    return features_data_df
+
+
+def build_features(seasons_year, season_type="Regular"):
+
+    frames = [build_features_one_season(season_year, season_type) for season_year in seasons_year]
+    features_data_df = pd.concat(frames)
     return features_data_df
 
 
