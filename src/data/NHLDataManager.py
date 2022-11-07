@@ -637,9 +637,15 @@ class NHLDataManager:
             multiplier = (sides - 0.5) * 2
             goals_and_shots['st_X'] = multiplier * goals_and_shots['X']
             goals_and_shots['st_Y'] = multiplier * goals_and_shots['Y']
+            
+            goals_and_shots['Last event st_X'] = multiplier * goals_and_shots['Last event X']
+            goals_and_shots['Last event st_Y'] = multiplier * goals_and_shots['Last event Y']
         except: # if no rinkSide info
             goals_and_shots['st_X'] = np.nan
             goals_and_shots['st_Y'] = np.nan
+            
+            goals_and_shots['Last event st_X'] = np.nan
+            goals_and_shots['Last event st_Y'] = np.nan
 
         return goals_and_shots
 
