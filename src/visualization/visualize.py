@@ -207,13 +207,18 @@ def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True) -> None:
 
         goals_over_total = []
 
-
         for count_p, _ in enumerate(x[:-1]):
 
             ind = (y_pred >= percentiles[count_p]) & (y_pred < percentiles[count_p+1])
+
             num_goals = (y[ind] == 1).sum()
             num_no_goals = (y[ind] == 0).sum()
-            ratio = num_goals / (num_goals + num_no_goals)
+
+            if (num_goals + num_no_goals) == 0:
+                ratio = 0
+            else:
+                ratio = num_goals / (num_goals + num_no_goals)
+
             goals_over_total.append(100.*ratio)
 
         goals_over_total = np.array(goals_over_total)
@@ -223,13 +228,15 @@ def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True) -> None:
 
     if add_random:
         goals_over_total = []
-        percentiles = [np.percentile(y_pred, i) for i in x]
         y_random = np.random.uniform(low=0.0, high=1.0, size=len(y))
+        percentiles = [np.percentile(y_random, i) for i in x]
+
         for count_p, _ in enumerate(x[:-1]):
 
             ind = (y_random >= percentiles[count_p]) & (y_random < percentiles[count_p+1])
             num_goals = (y[ind] == 1).sum()
             num_no_goals = (y[ind] == 0).sum()
+
             ratio = num_goals / (num_goals + num_no_goals)
             goals_over_total.append(100.*ratio)
 
