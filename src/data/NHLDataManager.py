@@ -548,7 +548,7 @@ class NHLDataManager:
             count += 1
 
         for shot in shot_events:
-            event_idx = goal['about']['eventIdx']
+            event_idx = shot['about']['eventIdx']
             df.loc[count]['Event Index'] = event_idx
 
             df.loc[count]['Time'] = shot['about']['periodTime']
@@ -560,8 +560,8 @@ class NHLDataManager:
             df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
             df.loc[count]['Goalie'] = shot['players'][-1]['player']['fullName']
 
-            if 'secondaryType' in goal['result']:
-                df.loc[count]['Shot Type'] = goal['result']['secondaryType']
+            if 'secondaryType' in shot['result']:
+                df.loc[count]['Shot Type'] = shot['result']['secondaryType']
 
             df.loc[count]['Last event type'] = all_events[event_idx-1]['result']['event']
 
