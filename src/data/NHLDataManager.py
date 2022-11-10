@@ -57,7 +57,7 @@ class NHLDataManager:
         self._data_dir = data_dir
 
 
-    def _get_url(self, game_id: str) -> str:
+    def _get_game_url(self, game_id: str) -> str:
         """Returns the url used to get the data for a specifif game id
 
         :param game_id: should be built according to the specs:
@@ -67,8 +67,23 @@ class NHLDataManager:
         :rtype: str
         """
         return f"https://statsapi.web.nhl.com/api/v1/game/{game_id}/feed/live/"
-        
 
+
+    
+    def _get_player_stats_url(self, player_id: int, season_year: int) -> str:
+        """Returns the url used to get the data for a specific player id and a specific season
+
+        :param player_id: player id
+        :type player_id: int
+        :param season_year: season year
+        :type season_year: int
+        :return: url from where the data will be retrieved
+        :rtype: str
+        """
+        return f"https://statsapi.web.nhl.com/api/v1/people/{player_id}/stats/?stats=statsSingleSeason&season={season_year}{season_year+1}"
+
+
+        
     def validate_season(self, season_year: int, season_type: str) -> bool:
         """Checks if the season is valide (4-digits and between min and max season)
 
@@ -161,6 +176,47 @@ class NHLDataManager:
             return f'{season_year}03{str(game_number).zfill(4)}'
 
 
+    def load_player(self, player_id: int, season_year: int) -> dict:
+        """Download or read stats data of a specific player
+
+        :param player_id: player id
+        :type player_id: int
+        :param season_year: season year
+        :type season_year: int
+        :return: a dictionary that contains the data (down)loaded
+        :rtype: dict
+        """
+
+        if self.data_dir == "":
+            print('The data directory is not defined, please defined it before to continue.')
+            return {}
+
+        path_output = os.path.join(self.data_dir, "raw", str(season_year), "Players")
+        os.makedirs(path_output, exist_ok=True)
+
+        player_id_path = os.path.join(path_output, f'{player_id}.json')
+
+        # If the json has already been download, just read it 
+        if os.path.exists(player_id_path):
+            try:
+                with open(player_id_path, "r") as f:
+                    json_dict = json.load(f)
+                return json_dict
+            except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
+                pass
+
+        # If not, download and save the json
+        url = self._get_player_stats_url(player_id, season_year)
+        r = requests.get(url)
+        if r.status_code == 200:
+            data_json = r.json()
+            with open(player_id_path, "w") as f:
+                json.dump(data_json, f, indent=4)
+            return data_json
+        else:
+            return {}
+
+
     def load_game(self, season_year: list, season_type: str, game_number: int) -> dict:
         """Download or read data of a specific game
 
@@ -191,17 +247,19 @@ class NHLDataManager:
         # If the json has already been download, just read it 
         if os.path.exists(game_id_path):
             try:
-                json_dict = json.load(open(game_id_path))
+                with open(game_id_path, "r") as f:
+                    json_dict = json.load(f)
                 return json_dict
             except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
                 pass
 
         # If not, download and save the json
-        url = self._get_url(f'{game_id}')
+        url = self._get_game_url(f'{game_id}')
         r = requests.get(url)
         if r.status_code == 200:
             data_json = r.json()
-            json.dump(data_json, open(game_id_path, "w"), indent=4)
+            with open(game_id_path, "w") as f:
+                json.dump(data_json, f, indent=4)
             return data_json
         else:
             return {}
@@ -251,11 +309,12 @@ class NHLDataManager:
 
                 # If the json has not already been download yet, do it!
                 if not os.path.exists(game_id_path):
-                   url = self._get_url(f'{game_id}')
+                   url = self._get_game_url(f'{game_id}')
                    r = requests.get(url)
                    if r.status_code == 200:
                        data_json = r.json()
-                       json.dump(data_json, open(game_id_path, "w"), indent=4)
+                       with open(game_id_path, "w") as f:
+                           json.dump(data_json, f, indent=4)
 
         return None
 
@@ -467,7 +526,7 @@ class NHLDataManager:
             shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
             all_events = [data['allPlays'][ev] for ev in range(num_events)]
         except KeyError:
-            return ([], [])
+            return ([], [], [])
 
         return (goal_events, shot_events, all_events)
 
@@ -491,11 +550,14 @@ class NHLDataManager:
         if (len(goal_events) == 0) & (len(shot_events) == 0):
             return None
 
+        if (len(all_events) == 0):
+            return None
+
         game_id = self.build_game_id(season_year, season_type, game_number)
 
         num_events = len(goal_events) + len(shot_events)
         df = pd.DataFrame(index=range(num_events),
-                          columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Goalie',
+                          columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Shooter ID', 'Goalie', 'Goalie ID', 
                                    'Empty Net', 'Strength', 'X', 'Y', 'Last event type', 'Last event X', 'Last event Y', 'Last event elapsed time', 'Last event distance'])
 
         count = 0
@@ -511,7 +573,11 @@ class NHLDataManager:
 
             df.loc[count]['Type'] = 'GOAL'
             df.loc[count]['Shooter'] = goal['players'][0]['player']['fullName']
+            df.loc[count]['Shooter ID'] = goal['players'][0]['player']['id']
+
             df.loc[count]['Goalie'] = goal['players'][-1]['player']['fullName']
+            df.loc[count]['Goalie ID'] = goal['players'][-1]['player']['id']
+
             if 'emptyNet' in goal['result']:
                 df.loc[count]['Empty Net'] = goal['result']['emptyNet']
             else:
@@ -540,7 +606,6 @@ class NHLDataManager:
                 pass
 
 
-
             time_goal_s = int(goal['about']['periodTime'].split(':')[0]) * 60 + int(goal['about']['periodTime'].split(':')[1])
             time_event_s = int(all_events[event_idx-1]['about']['periodTime'].split(':')[0]) * 60 + int(all_events[event_idx-1]['about']['periodTime'].split(':')[1])
             df.loc[count]['Last event elapsed time'] = time_goal_s - time_event_s
@@ -558,7 +623,10 @@ class NHLDataManager:
 
             df.loc[count]['Type'] = 'SHOT'
             df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
+            df.loc[count]['Shooter ID'] = shot['players'][0]['player']['id']
+
             df.loc[count]['Goalie'] = shot['players'][-1]['player']['fullName']
+            df.loc[count]['Goalie ID'] = shot['players'][-1]['player']['id']
 
             if 'secondaryType' in shot['result']:
                 df.loc[count]['Shot Type'] = shot['result']['secondaryType']
@@ -580,7 +648,6 @@ class NHLDataManager:
                                                                 (df.loc[count]['Y']-df.loc[count]['Last event Y'])**2 )
             except KeyError:
                 pass
-
 
             time_shots_s = int(shot['about']['periodTime'].split(':')[0]) * 60 + int(shot['about']['periodTime'].split(':')[1])
             time_event_s = int(all_events[event_idx-1]['about']['periodTime'].split(':')[0]) * 60 + int(all_events[event_idx-1]['about']['periodTime'].split(':')[1])
@@ -626,15 +693,27 @@ class NHLDataManager:
             else:
                 pass
 
+            print(periods)
+            print(home_sides)
+            print(away_sides)
+
+
             home_team = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
             away_team = game_data['gameData']['teams']['away']['triCode']
+
+
+            print(home_team)
+            print(away_team)
 
             # Computed "standardised" coordinates
             period_indices = goals_and_shots['Period'] - 1
             is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
+
             sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
+            # print(sides)
              # boolean array: True if team is on left
             multiplier = (sides - 0.5) * 2
+
             goals_and_shots['st_X'] = multiplier * goals_and_shots['X']
             goals_and_shots['st_Y'] = multiplier * goals_and_shots['Y']
             
@@ -677,20 +756,13 @@ class NHLDataManager:
         else:
             os.makedirs(dir_csv, exist_ok=True)
 
+
             game_numbers = self.get_game_numbers(season_year=season_year, season_type=season_type)
-            data_season_df = self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_numbers[0])
 
-            pbar_game = tqdm(game_numbers, position=0, leave=True)
-            pbar_game.set_description(f'Game {game_numbers[0]}')
+            data_season_list = [self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number) 
+                                for game_number in game_numbers]
 
-            for game_number in tqdm(game_numbers[1:]):
-                pbar_game.set_description(f'Game {game_number}')
-
-                temp_df = self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number)
-                if temp_df is None:
-                    continue
-                data_season_df = pd.concat([data_season_df, temp_df], ignore_index=True)
-
+            data_season_df = pd.concat([d for d in data_season_list if d is not None], ignore_index=True)
             data_season_df.to_csv(path_csv, index=False)
 
         return data_season_df
