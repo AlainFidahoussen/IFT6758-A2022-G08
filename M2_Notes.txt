@@ -1,0 +1,27 @@
+0. Faire des pipeline pour outliers, normalisation, sélection, modèles
+
+1. Split train-valid
+
+  - seed = 42
+  - stratify
+
+2. Outliers Detection sur train
+
+  - Z-Score (Gaussian)
+  - Centile (10 et 90 par exemple) : https://stackoverflow.com/questions/35827863/remove-outliers-in-pandas-dataframe-using-percentiles
+  - Isolation Forest : https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html
+  - knn : https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.LocalOutlierFactor.html#sklearn.neighbors.LocalOutlierFactor
+  - svm : https://scikit-learn.org/stable/modules/generated/sklearn.svm.OneClassSVM.html#sklearn.svm.OneClassSVM
+  
+3. Normalisation sur train
+
+  - MinMax
+  - Std
+
+4. Sélection caractéristiques sur train
+
+  - https://scikit-learn.org/stable/modules/feature_selection.html
+  - Forward / Backward / Recursive (cf sklearn)
+  - L1 (Lasso)
+  
+  - Trees 
