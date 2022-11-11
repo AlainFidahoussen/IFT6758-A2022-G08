@@ -22,14 +22,13 @@ def build_features_one_season(season_year: int, season_type: str = "Regular", wi
     :return: the features data frame
     :rtype: pd.DataFrame
     """
-    print(season_year)
 
     data_manager = DataManager.NHLDataManager()
 
     dir_csv = os.path.join(data_manager.data_dir, "processed", "csv")
-
     filename = f'{season_year}_{season_type}_M2.csv'
     path_csv = os.path.join(dir_csv, filename)
+
     if os.path.exists(path_csv):
         features_data_df = pd.read_csv(path_csv, dtype={'Game ID': str})
     else:
@@ -68,13 +67,10 @@ def build_features_one_season(season_year: int, season_type: str = "Regular", wi
         features_data_df['Speed From Previous Event'] = features_data_df.apply(lambda row: calculate_speed(row['Last event distance'], row['Last event elapsed time']), axis=1)
         # features_data_df['Speed From Previous Event'] = features_data_df['Last event distance'] / features_data_df['Last event elapsed time']
         
-
         if with_player_stats:
             features_data_df = add_player_features(features_data_df, season_year)
-
-     
+            
         features_data_df.to_csv(path_csv, index=False)
-
 
     return features_data_df
 

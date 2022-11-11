@@ -679,8 +679,8 @@ class NHLDataManager:
         if goals_and_shots is None:
             return None
 
-        # Get period and team info from game data
         try:
+            # Get period and team info from game data
             periods = game_data['liveData']['linescore']['periods']
             home_sides = [period['home']['rinkSide'] == 'left' for period in periods] # True for left, False for right
             away_sides = [period['away']['rinkSide'] == 'left' for period in periods]
@@ -693,25 +693,18 @@ class NHLDataManager:
             else:
                 pass
 
-            print(periods)
-            print(home_sides)
-            print(away_sides)
-
-
             home_team = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
             away_team = game_data['gameData']['teams']['away']['triCode']
 
-
-            print(home_team)
-            print(away_team)
-
             # Computed "standardised" coordinates
             period_indices = goals_and_shots['Period'] - 1
-            is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
+            # is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
+            # is_home = True
+            is_home = goals_and_shots['Team'].str.contains(home_team)
 
             sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
-            # print(sides)
-             # boolean array: True if team is on left
+
+                # boolean array: True if team is on left
             multiplier = (sides - 0.5) * 2
 
             goals_and_shots['st_X'] = multiplier * goals_and_shots['X']
@@ -719,7 +712,8 @@ class NHLDataManager:
             
             goals_and_shots['Last event st_X'] = multiplier * goals_and_shots['Last event X']
             goals_and_shots['Last event st_Y'] = multiplier * goals_and_shots['Last event Y']
-        except: # if no rinkSide info
+
+        except:
             goals_and_shots['st_X'] = np.nan
             goals_and_shots['st_Y'] = np.nan
             
@@ -752,10 +746,8 @@ class NHLDataManager:
         path_csv = os.path.join(dir_csv, filename)
         if os.path.exists(path_csv):
             data_season_df = pd.read_csv(path_csv, dtype={'Game ID': str})
-
         else:
             os.makedirs(dir_csv, exist_ok=True)
-
 
             game_numbers = self.get_game_numbers(season_year=season_year, season_type=season_type)
 
@@ -764,6 +756,7 @@ class NHLDataManager:
 
             data_season_df = pd.concat([d for d in data_season_list if d is not None], ignore_index=True)
             data_season_df.to_csv(path_csv, index=False)
+
 
         return data_season_df
 
