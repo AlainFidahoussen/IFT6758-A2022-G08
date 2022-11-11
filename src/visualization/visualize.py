@@ -159,7 +159,7 @@ def plot_Cumulative_Goal(classifiers_tuple: list[tuple], add_random=True) -> Non
             ratio = num_goals / num_total_goals
             goals_ratio.append(100.*ratio)
 
-        goals_ratio = 100-np.cumsum(np.array(goals_ratio))
+        goals_ratio = np.cumsum(np.array(goals_ratio))
         plt.plot(x[0:-1], goals_ratio, color=colors[count], label=clf_name)
 
 
@@ -174,7 +174,7 @@ def plot_Cumulative_Goal(classifiers_tuple: list[tuple], add_random=True) -> Non
             ratio = num_goals / num_total_goals
             goals_ratio.append(100.*ratio)
 
-        goals_ratio = 100-np.cumsum(np.array(goals_ratio))
+        goals_ratio = np.cumsum(np.array(goals_ratio))
         plt.plot(x[0:-1], goals_ratio, color='black', label='Random Uniform')
 
     plt.title('Cumulative % of goals')
@@ -199,7 +199,7 @@ def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True) -> None:
         clf_name = classifier[1]
         X = classifier[2]
         y = classifier[3]
-
+           
         y_pred = clf.predict_proba(X)[:,1]
 
         x = np.linspace(0, 100, 20)
