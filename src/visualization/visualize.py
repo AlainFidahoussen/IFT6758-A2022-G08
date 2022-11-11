@@ -259,7 +259,7 @@ def plot_Calibration(classifiers_tuple: list[tuple], add_random=True) -> None:
     fig = plt.figure(figsize=(8, 8))
     gs = GridSpec(2, 2)
     ax_calibration_curve = fig.add_subplot(gs[:2, :2])
-    nbins = 50
+    nbins = 20
 
     for count, classifier in enumerate(classifiers_tuple):
 
