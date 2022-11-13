@@ -79,6 +79,7 @@ target/
 # exclude data from source control by default
 /data/
 /notebooks/data
+/notebooks/Milestone-2/data/
 
 # Mac OS-specific storage files
 .DS_Store
