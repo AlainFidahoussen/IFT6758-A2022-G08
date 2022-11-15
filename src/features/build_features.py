@@ -355,10 +355,11 @@ def _compute_penalties_end(df_goals: pd.DataFrame, df_penalties: pd.DataFrame) -
 
             elif penalty_duration == 240: # A double minor
                 if len(diff_inds) == 1: # If there is only one goal with the 4 minutes, end
-                    if (time_end - goals_time[diff_inds[0]]) <= 120: # The goal happened during the first penalty: end the second one
-                        df_penalties_end.at[count, 'Game seconds'] = time_end - 120 # The new time for the end of the penalty if equal to the goal time (add one for sorting)
-                    else: # The goal happened during the second penalty: end everything
-                        df_penalties_end.at[count, 'Game seconds'] =  goals_time[diff_inds[0]] + 1
+                    if goals_team[diff_inds[0]] != row['Team']: # End the penalty only if the other team scored
+                        if (time_end - goals_time[diff_inds[0]]) <= 120: # The goal happened during the first penalty: end the second one
+                            df_penalties_end.at[count, 'Game seconds'] = time_end - 120 # The new time for the end of the penalty if equal to the goal time (add one for sorting)
+                        else: # The goal happened during the second penalty: end everything
+                            df_penalties_end.at[count, 'Game seconds'] =  goals_time[diff_inds[0]] + 1
                 elif len(diff_inds) == 2: # If there are two goals within the 4 minutes, end the double minor penalty
                     if (goals_team[diff_inds[0]] != row['Team']) & (goals_team[diff_inds[1]] != row['Team']):
                         df_penalties_end.at[count, 'Game seconds'] = goals_time[diff_inds[0]] + 1 # The new time for the end of the penalty if equal to the goal time (add one for sorting)
