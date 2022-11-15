@@ -23,5 +23,20 @@
   - https://scikit-learn.org/stable/modules/feature_selection.html
   - Forward / Backward / Recursive (cf sklearn)
   - L1 (Lasso)
-  
+  - PCA
   - Trees 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+Minimum time between two events = 0.5s
+If the event before is a stoppage, ignore it
+Ignore the penalty of the gool keeper
+Ignore the penalty during overtime
+Ignore the delayed penalty
+

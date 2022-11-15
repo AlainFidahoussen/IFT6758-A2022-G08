@@ -1,3 +1,5 @@
+import src.features.build_features as FeaturesManager
+
 import datetime
 
 import requests
@@ -153,7 +155,7 @@ class NHLDataManager:
         return game_numbers
 
 
-    def build_game_id(self, season_year: int, season_type: str, game_number: int) -> str:
+    def get_game_id(self, season_year: int, season_type: str, game_number: int) -> str:
         """Build the game_id, according to the specs:
         https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md#game-ids
 
@@ -241,7 +243,7 @@ class NHLDataManager:
         path_output = os.path.join(self.data_dir, "raw", str(season_year), season_type)
 
         os.makedirs(path_output, exist_ok=True)
-        game_id = self.build_game_id(season_year, season_type, game_number)
+        game_id = self.get_game_id(season_year, season_type, game_number)
         game_id_path = os.path.join(path_output, f'{game_id}.json')
 
         # If the json has already been download, just read it 
@@ -304,7 +306,7 @@ class NHLDataManager:
                 pbar_game.set_description(f'Game {game_number}')
 
                 # Build the game id and get the path to load/save the json file
-                game_id = self.build_game_id(season_year, season_type, game_number)
+                game_id = self.get_game_id(season_year, season_type, game_number)
                 game_id_path = os.path.join(path_data, f'{game_id}.json')
 
                 # If the json has not already been download yet, do it!
@@ -415,91 +417,33 @@ class NHLDataManager:
         return games_number
 
 
-    def get_teams_from_game(self, data_game : dict) -> dict:
-        """Return the teams from the data
 
-        :param data_game: data of a specific game already (down)loaded
-        :type data_game: dict
-        :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
-        :rtype: dict
+    def get_teams(self, season_year:int, season_type:str, game_number:int) -> list:
+        """Return the teams from from a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a list [home, away]
+        :rtype: list
         """
         try:
+            data_game = self.load_game(season_year, season_type, game_number)
+
             team_name_away = data_game['gameData']['teams']['away']['name']
             team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
+            team_away = f'{team_name_away} ({team_abbr_away})'
 
             team_name_home = data_game['gameData']['teams']['home']['name']
             team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
+            team_home = f'{team_name_home} ({team_abbr_home})'
 
-            return {team_abbr_home:team_name_home, team_abbr_away:team_name_away}
+            return [team_home, team_away]
         except KeyError:
-            return {}
-
-
-    def get_teams(self, season_year:int, season_type:str, game_number:int) -> dict:
-
-        """Return the teams of a specific game
-
-        :param season_year: specific season year
-        :type season_year: int
-        :param season_type: 'Regular' or 'Playoffs'
-        :type season_type: str
-        :param game_number: specific game number (could be get from the get_game_numbers() function)
-        :type game_number: int
-        :param path_data: path where the data will be [read if exist] - [stored if not]
-        :type path_data: str
-        :return: a dictionary {abbr_home:name_home, abbr_away:name_away}
-        :rtype: dict
-        """
-
-        data = self.load_game(season_year=season_year, season_type=season_type, game_number=game_number)
-        return self.get_teams_from_game(data)
-
-
-
-    def get_final_score_from_game(self, data_game : dict) -> dict:
-        """Return the final score of a specific game
-
-        :param data_game: data of a specific game already (down)loaded
-        :type data_game: dict
-        :return: a dictionary {abbr_home:score, abbr_away:score}
-        :rtype: dict
-        """
-
-        try:
-            team_abbr_away = data_game['gameData']['teams']['away']['abbreviation']
-            team_abbr_home = data_game['gameData']['teams']['home']['abbreviation']
-
-        except KeyError:
-            return {}
-
-
-        try:
-            score_away = data_game['liveData']['boxscore']['teams']['away']['teamStats']['teamSkaterStats']['goals']
-            score_home = data_game['liveData']['boxscore']['teams']['home']['teamStats']['teamSkaterStats']['goals']
-
-
-        except KeyError:
-            score_away = 0
-            score_home = 0
-
-        return {team_abbr_home:score_home, team_abbr_away:score_away}
-
-
-    def get_final_score(self, season_year:int, season_type:str, game_number:int) -> dict:
-        """Return the final score of a specific game as a dictionary
-
-        :param season_year: specific season year
-        :type season_year: int
-        :param season_type: 'Regular' or 'Playoffs'
-        :type season_type: str
-        :param game_number: specific game number (could be get from the get_game_numbers() function)
-        :type game_number: int
-        :return: a dictionary {abbr_home:score, abbr_away:score}
-        :rtype: dict
-        """
-
-        data = self.load_game(season_year=season_year, season_type=season_type, game_number=game_number)
-        return self.get_final_score_from_game(data)
+            return []
 
 
     def get_goals_and_shots(self, season_year:int, season_type:str, game_number:int) -> tuple:
@@ -531,6 +475,102 @@ class NHLDataManager:
         return (goal_events, shot_events, all_events)
 
 
+    def get_penalties(self, season_year:int, season_type:str, game_number:int) -> tuple:
+        """Return the goals and shots event from a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a tuple {goals events, shots events}
+        :rtype: tuple
+        """
+
+        data = self.load_game(season_year, season_type, game_number)
+
+        try:
+            list_events = data['liveData']['plays']['penaltyPlays']
+            penalties_events = [data['liveData']['plays']['allPlays'][ev] for ev in list_events]
+        except KeyError:
+            return []
+
+        return penalties_events
+
+
+
+    def get_penalties_df(self, season_year:int, season_type:str, game_number:int) -> pd.DataFrame:
+        """Return the penalties event from a specific game
+
+        :param season_year: specific season year
+        :type season_year: int
+        :param season_type: 'Regular' or 'Playoffs'
+        :type season_type: str
+        :param game_number: specific game number (could be get from the get_game_numbers() function)
+        :type game_number: int
+        :return: a data frame
+        :rtype: pd.DataFrame
+        """
+
+        penalty_events = self.get_penalties(season_year, season_type, game_number)
+
+        num_penalties = len(penalty_events)
+
+        if num_penalties == 0:
+            return None
+
+        df = pd.DataFrame(index=range(num_penalties), columns=['Game ID', 'Event Index', 'Type', 'Player', 'Team', 'Period', 'Time', 'Global Time', 'Severity', 'Minutes'])
+
+        game_id = self.get_game_id(season_year, season_type, game_number)
+
+        for count, penalty in enumerate(penalty_events):
+
+            player = penalty['players'][0]['player']['fullName']
+
+            team_name = penalty['team']['name']
+            team_abb = penalty['team']['triCode']
+
+            period = penalty['about']['period']
+            time = penalty['about']['periodTime']
+
+            severity = penalty['result']['penaltySeverity']
+            minutes = penalty['result']['penaltyMinutes']
+
+            # Skip the penalty shot, as it does not cause any expulsion
+            if severity == 'Penalty Shot':
+                continue
+
+            if severity == 'Match':
+                minutes = 5
+
+            df.loc[count]['Game ID'] = game_id
+            df.loc[count]['Event Index'] = penalty['about']['eventIdx']
+            df.loc[count]['Type'] = 'PENALTY'
+            df.loc[count]['Player'] = player
+            df.loc[count]['Team'] = f'{team_name} ({team_abb})'
+            df.loc[count]['Period'] = period
+            df.loc[count]['Time'] = time
+            df.loc[count]['Severity'] = severity
+            df.loc[count]['Minutes'] = minutes
+
+            # df.loc[count]['Global Time'] = FeaturesManager.calculate_global_time(period, time)
+
+        # Sometimes, the same player could have, at the same time, several penalties of different severity
+
+        # Just keep the more severe one (longest minutes)
+        # cf. 2018, "Regular", 2
+        Minutes_Max = df.groupby(['Player', 'Time']).Minutes.transform(max)
+        df = df.loc[df.Minutes == Minutes_Max].reset_index(drop=True)
+
+        # Or it should be the most recent event?
+        # Event_Max = df.groupby(['Player', 'Time'])['Event Index'].transform(max)
+        # df = df.loc[df['Event Index'] == Event_Max].reset_index(drop=True)
+
+
+        return df
+
+
 
     def get_goals_and_shots_df(self, season_year:int, season_type:str, game_number:int) -> pd.DataFrame:
         """Return the goals and shots event from a specific game
@@ -547,111 +587,89 @@ class NHLDataManager:
 
         (goal_events, shot_events, all_events) = self.get_goals_and_shots(season_year, season_type, game_number)
 
+
         if (len(goal_events) == 0) & (len(shot_events) == 0):
             return None
 
         if (len(all_events) == 0):
             return None
 
-        game_id = self.build_game_id(season_year, season_type, game_number)
+        # Transform the events in dictionary
+        all_events_dict = {a['about']['eventIdx']: a for a in all_events}
 
-        num_events = len(goal_events) + len(shot_events)
+        game_id = self.get_game_id(season_year, season_type, game_number)
+
+        goals_shots_events = goal_events + shot_events
+        num_events = len(goals_shots_events)
         df = pd.DataFrame(index=range(num_events),
                           columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Shooter ID', 'Goalie', 'Goalie ID', 
                                    'Empty Net', 'Strength', 'X', 'Y', 'Last event type', 'Last event X', 'Last event Y', 'Last event elapsed time', 'Last event distance'])
 
+
         count = 0
-        for goal in goal_events:
+        for event in goals_shots_events:
             # Difference between eventId and eventIdx
-            event_idx = goal['about']['eventIdx']
+            event_idx = event['about']['eventIdx']
             df.loc[count]['Event Index'] = event_idx
 
-            df.loc[count]['Time'] = goal['about']['periodTime']
-            df.loc[count]['Period'] = goal['about']['period']
+            df.loc[count]['Time'] = event['about']['periodTime']
+            df.loc[count]['Period'] = event['about']['period']
             df.loc[count]['Game ID'] = game_id
-            df.loc[count]['Team'] = f"{goal['team']['name']} ({goal['team']['triCode']})"
+            df.loc[count]['Team'] = f"{event['team']['name']} ({event['team']['triCode']})"
 
-            df.loc[count]['Type'] = 'GOAL'
-            df.loc[count]['Shooter'] = goal['players'][0]['player']['fullName']
-            df.loc[count]['Shooter ID'] = goal['players'][0]['player']['id']
+            df.loc[count]['Type'] = event['result']['event']
+            df.loc[count]['Shooter'] = event['players'][0]['player']['fullName']
+            df.loc[count]['Shooter ID'] = event['players'][0]['player']['id']
 
-            df.loc[count]['Goalie'] = goal['players'][-1]['player']['fullName']
-            df.loc[count]['Goalie ID'] = goal['players'][-1]['player']['id']
+            df.loc[count]['Goalie'] = event['players'][-1]['player']['fullName']
+            df.loc[count]['Goalie ID'] = event['players'][-1]['player']['id']
 
-            if 'emptyNet' in goal['result']:
-                df.loc[count]['Empty Net'] = goal['result']['emptyNet']
+            if 'emptyNet' in event['result']:
+                df.loc[count]['Empty Net'] = event['result']['emptyNet']
             else:
-                df.loc[count]['Empty Net'] = True
+                df.loc[count]['Empty Net'] = False
 
-            if 'secondaryType' in goal['result']:
-                df.loc[count]['Shot Type'] = goal['result']['secondaryType']
+            if 'secondaryType' in event['result']:
+                df.loc[count]['Shot Type'] = event['result']['secondaryType']
 
-            df.loc[count]['Strength'] = goal['result']['strength']['name']
+            # Strength exists only for Goals
+            if df.loc[count]['Type'] == 'Goal':
+                df.loc[count]['Strength'] = event['result']['strength']['name']
 
-            df.loc[count]['Last event type'] = all_events[event_idx-1]['result']['event']
+            # For simplicity, ignore the stoppage events
+            last_event = all_events_dict[event_idx-1]
+            last_event_type = last_event['result']['event']
+            if last_event_type.lower() == 'stoppage':
+                last_event = all_events_dict[event_idx-2]
+                last_event_type = last_event['result']['event']
+                    
+
+            df.loc[count]['Last event type'] = last_event['result']['event']
 
             try:
-                df.loc[count]['X'] = goal['coordinates']['x']
-                df.loc[count]['Y'] = goal['coordinates']['y']
+                df.loc[count]['X'] = event['coordinates']['x']
+                df.loc[count]['Y'] = event['coordinates']['y']
 
             except KeyError:
                 pass
 
             try:
-                df.loc[count]['Last event X'] = all_events[event_idx-1]['coordinates']['x']
-                df.loc[count]['Last event Y'] = all_events[event_idx-1]['coordinates']['y']
+                if last_event_type.lower() == 'period start':
+                    df.loc[count]['Last event X'] = 0
+                    df.loc[count]['Last event Y'] = 0
+                else:
+                    df.loc[count]['Last event X'] = last_event['coordinates']['x']
+                    df.loc[count]['Last event Y'] = last_event['coordinates']['y']
+
                 df.loc[count]['Last event distance'] = np.sqrt( (df.loc[count]['X']-df.loc[count]['Last event X'])**2 + 
                                                                 (df.loc[count]['Y']-df.loc[count]['Last event Y'])**2 )
             except KeyError:
                 pass
 
 
-            time_goal_s = int(goal['about']['periodTime'].split(':')[0]) * 60 + int(goal['about']['periodTime'].split(':')[1])
-            time_event_s = int(all_events[event_idx-1]['about']['periodTime'].split(':')[0]) * 60 + int(all_events[event_idx-1]['about']['periodTime'].split(':')[1])
-            df.loc[count]['Last event elapsed time'] = time_goal_s - time_event_s
-
-            count += 1
-
-        for shot in shot_events:
-            event_idx = shot['about']['eventIdx']
-            df.loc[count]['Event Index'] = event_idx
-
-            df.loc[count]['Time'] = shot['about']['periodTime']
-            df.loc[count]['Period'] = shot['about']['period']
-            df.loc[count]['Game ID'] = game_id
-            df.loc[count]['Team'] = f"{shot['team']['name']} ({shot['team']['triCode']})"
-
-            df.loc[count]['Type'] = 'SHOT'
-            df.loc[count]['Shooter'] = shot['players'][0]['player']['fullName']
-            df.loc[count]['Shooter ID'] = shot['players'][0]['player']['id']
-
-            df.loc[count]['Goalie'] = shot['players'][-1]['player']['fullName']
-            df.loc[count]['Goalie ID'] = shot['players'][-1]['player']['id']
-
-            if 'secondaryType' in shot['result']:
-                df.loc[count]['Shot Type'] = shot['result']['secondaryType']
-
-            df.loc[count]['Last event type'] = all_events[event_idx-1]['result']['event']
-
-
-            try:
-                df.loc[count]['X'] = shot['coordinates']['x']
-                df.loc[count]['Y'] = shot['coordinates']['y']
-            except KeyError:
-                pass
-
-
-            try:
-                df.loc[count]['Last event X'] = all_events[event_idx-1]['coordinates']['x']
-                df.loc[count]['Last event Y'] = all_events[event_idx-1]['coordinates']['y']
-                df.loc[count]['Last event distance'] = np.sqrt( (df.loc[count]['X']-df.loc[count]['Last event X'])**2 + 
-                                                                (df.loc[count]['Y']-df.loc[count]['Last event Y'])**2 )
-            except KeyError:
-                pass
-
-            time_shots_s = int(shot['about']['periodTime'].split(':')[0]) * 60 + int(shot['about']['periodTime'].split(':')[1])
-            time_event_s = int(all_events[event_idx-1]['about']['periodTime'].split(':')[0]) * 60 + int(all_events[event_idx-1]['about']['periodTime'].split(':')[1])
-            df.loc[count]['Last event elapsed time'] = time_shots_s - time_event_s
+            time_event_s = float(event['about']['periodTime'].split(':')[0]) * 60 + int(event['about']['periodTime'].split(':')[1])
+            time_last_event_s = float(last_event['about']['periodTime'].split(':')[0]) * 60 + int(last_event['about']['periodTime'].split(':')[1])
+            df.loc[count]['Last event elapsed time'] = time_event_s - time_last_event_s + 0.5
 
             count += 1
 
@@ -693,14 +711,12 @@ class NHLDataManager:
             else:
                 pass
 
-            home_team = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
-            away_team = game_data['gameData']['teams']['away']['triCode']
+            home_team_abb = game_data['gameData']['teams']['home']['triCode'] # Tricode (e.g. MTL)
+            away_team_abb = game_data['gameData']['teams']['away']['triCode']
 
             # Computed "standardised" coordinates
             period_indices = goals_and_shots['Period'] - 1
-            # is_home = goals_and_shots['Team'].str.contains(f"({home_team})")
-            # is_home = True
-            is_home = goals_and_shots['Team'].str.contains(home_team)
+            is_home = goals_and_shots['Team'].str.contains(home_team_abb)
 
             sides = np.where(is_home, np.take(home_sides, period_indices), np.take(away_sides, period_indices))
 
@@ -724,7 +740,7 @@ class NHLDataManager:
 
 
     def get_season_dataframe(self, season_year:int, season_type:str) -> pd.DataFrame:
-        """Return the same dataframe as get_goals_and_shots_df_standardised, but for the whole season
+        """Return the same dataframe like get_goals_and_shots_df_standardised, but for the whole season
            The dataframe is also saved as a CSV file in self.data_dir/processed
         :param season_year: specific season year
         :type season_year: int
