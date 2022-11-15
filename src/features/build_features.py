@@ -59,7 +59,7 @@ def build_features_one_season(season_year: int, season_type: str = "Regular", wi
         
         features_data_df['Last event angle'] = features_data_df.apply(lambda row: calculate_angle(np.array([row['Last event st_X'], row['Last event st_Y']]), net_coordinates, p2), axis=1)
 
-        features_data_df['Rebound'] = (features_data_df['Last event type'] == 'Shot').astype(int)
+        features_data_df['Rebound'] = (features_data_df['Last event type'].str.contains('Shot')).astype(int)
         # features_data_df['Rebound'] = features_data_df.apply(lambda row: True if row['Last event type'] == 'Shot' else False, axis=1)
         
         features_data_df['Change in Shot Angle'] = features_data_df.apply(lambda row: np.abs(row['Shot angle'] - row['Last event angle']) if row['Rebound'] == True else 0, axis=1)
@@ -115,7 +115,7 @@ def calculate_game_seconds(period: int, time: str) -> int:
 
     time_global = 0.
 
-    time_seconds = pd.to_timedelta(f'00:{time}').seconds
+    time_seconds = pd.to_timedelta(f'00:{time}').dt.seconds
 
     if period == 1:
         time_global = time_seconds
