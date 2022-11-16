@@ -115,7 +115,7 @@ def calculate_game_seconds(period: int, time: str) -> int:
 
     time_global = 0.
 
-    time_seconds = pd.to_timedelta(f'00:{time}').dt.seconds
+    time_seconds = pd.to_timedelta(f'00:{time}').seconds
 
     if period == 1:
         time_global = time_seconds
@@ -217,7 +217,7 @@ def add_stregth_features(features_data_df: pd.DataFrame, season_year: int, seaso
         df_goals = features_data_df.query(f"`Game ID` == '{game_id}' & Type == 'Goal'")
         df_shots = features_data_df.query(f"`Game ID` == '{game_id}' & Type == 'Shot'")
         df_penalties = data_manager.get_penalties_df(season_year, season_type, game_number)
-    
+
         features_data_df['Num players With'] = np.nan
         features_data_df['Num players Against'] = np.nan
 
@@ -229,6 +229,7 @@ def add_stregth_features(features_data_df: pd.DataFrame, season_year: int, seaso
             df['Elapsed time since Power Play'] = 0           
             features_data_add_lst.append(df)
             continue
+
 
         goals_shots_penalities_ordered_df = _get_goals_shots_penalities_ordered(df_goals, df_shots, df_penalties)
         goals_shots_penalities_ordered_df = _compute_strength_and_num_players(goals_shots_penalities_ordered_df)
@@ -247,11 +248,6 @@ def _compute_strength_and_num_players(goals_shots_penalities_ordered_df: pd.Data
     teams = goals_shots_penalities_ordered_df['Team'].unique()
     team0 = teams[0]
     team1 = teams[1]
-
-    # goals_shots_penalities_ordered_df['Num players With'] = 5
-    # goals_shots_penalities_ordered_df['Num players Against'] = 5
-    # goals_shots_penalities_ordered_df['Elapsed time since Power Play'] = 0
-    # goals_shots_penalities_ordered_df['Strength'] = 'Even'
 
     num_players_by_team = {team0: 5, team1: 5}
     start_penalty_time_by_team = {team0: 0, team1: 0}
@@ -291,14 +287,14 @@ def _compute_strength_and_num_players(goals_shots_penalities_ordered_df: pd.Data
                 start_penalty_time_by_team[team_with] = 0
 
         if num_players_by_team[team_with] > num_players_by_team[team_against]:
-            goals_shots_penalities_ordered_df.at[count, 'Strength'] = 'Power Play'
+            if row['Type'] != 'Goal': goals_shots_penalities_ordered_df.at[count, 'Strength'] = 'Power Play' # don't overwrite the Goal Strength, already available id the API
             goals_shots_penalities_ordered_df.at[count, 'Elapsed time since Power Play'] = row['Game seconds'] - start_penalty_time_by_team[team_against]
 
         elif num_players_by_team[team_with] < num_players_by_team[team_against]:
-            goals_shots_penalities_ordered_df.at[count, 'Strength'] = 'Short Handed'
+            if row['Type'] != 'Goal': goals_shots_penalities_ordered_df.at[count, 'Strength'] = 'Short Handed' # don't overwrite the Goal Strength, already available id the API
             goals_shots_penalities_ordered_df.at[count, 'Elapsed time since Power Play'] = 0
         else:
-            goals_shots_penalities_ordered_df.at[count, 'Strength'] = 'Even'
+            if row['Type'] != 'Goal': goals_shots_penalities_ordered_df.at[count, 'Strength'] = 'Even' # don't overwrite the Goal Strength, already available id the API
             goals_shots_penalities_ordered_df.at[count, 'Elapsed time since Power Play'] = 0
         
         goals_shots_penalities_ordered_df.at[count, 'Num players With'] = num_players_by_team[team_with]
@@ -308,6 +304,16 @@ def _compute_strength_and_num_players(goals_shots_penalities_ordered_df: pd.Data
 
 
 def _get_goals_shots_penalities_ordered(df_goals: pd.DataFrame, df_shots: pd.DataFrame, df_penalties: pd.DataFrame) -> pd.DataFrame:
+
+    # Ignoe the Game Misconduct and Penalty Shot, as it does not cause any expulsion from the ice
+    # df_penalties = df_penalties[(df_penalties['Severity'] != 'Misconduct') & (df_penalties['Severity'] != 'Penalty Shot')]
+    df_penalties.drop(df_penalties.index[ (df_penalties['Severity'].str.contains('Misconduct')) | (df_penalties['Severity'].str.contains('Penalty Shot')) ], inplace=True)
+
+    # # For a Match penalty, put the time to 5mn (was aked on Piazza)
+    df_penalties['Minutes'] = df_penalties.apply(lambda row: 5 if row['Severity'] == 'Match' else row['Minutes'], axis=1)
+
+    # df_penalties['Minutes'] = df_penalties.apply(lambda row: np.linalg.norm(np.array([row['st_X'], row['st_Y']]) - net_coordinates), axis=1)
+
 
     # Transform time to global
     df_penalties['Game seconds'] = df_penalties.apply(lambda row: calculate_game_seconds(row['Period'], row['Time']), axis=1)

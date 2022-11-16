@@ -537,13 +537,6 @@ class NHLDataManager:
             severity = penalty['result']['penaltySeverity']
             minutes = penalty['result']['penaltyMinutes']
 
-            # Skip the penalty shot, as it does not cause any expulsion
-            if severity == 'Penalty Shot':
-                continue
-
-            if severity == 'Match':
-                minutes = 5
-
             df.loc[count]['Game ID'] = game_id
             df.loc[count]['Event Index'] = penalty['about']['eventIdx']
             df.loc[count]['Type'] = 'PENALTY'
