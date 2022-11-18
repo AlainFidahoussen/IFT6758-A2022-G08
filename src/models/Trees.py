@@ -133,7 +133,7 @@ if __name__ == "__main__":
         "spec": spec, 
         "parameters": model_params,
         "name": "Bayes Optimization", 
-        "trials": 30
+        "trials": 5
     }
 
 
