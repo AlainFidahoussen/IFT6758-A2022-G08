@@ -62,6 +62,14 @@ def clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
         y_distance_pred = clf_distance.predict(X_distance_valid)
         metrics = evaluate(y_valid, y_distance_pred)
         experiment.log_metrics(metrics)
+        
+    params={"random_state": RANDOM_SEED,
+        "model_type": "logreg",
+        "scaler": None,
+        # "param_grid":str(param_grid),
+        "stratify":True, 
+        "data": "Shot distance",}
+    experiment.log_parameters(params)
     
     experiment.end()
     
@@ -83,6 +91,14 @@ def clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
         y_angle_pred = clf_angle.predict(X_angle_valid)
         metrics = evaluate(y_valid, y_angle_pred)
         experiment.log_metrics(metrics)
+        
+    params={"random_state": RANDOM_SEED,
+        "model_type": "logreg",
+        "scaler": None,
+        # "param_grid":str(param_grid),
+        "stratify":True, 
+        "data": "Shot angle",}
+    experiment.log_parameters(params)
     
     experiment.end()
     
@@ -103,6 +119,14 @@ def clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
         y_distance_angle_pred = clf_distance_angle.predict(X_distance_angle_valid)
         metrics = evaluate(y_valid, y_distance_angle_pred)
         experiment.log_metrics(metrics)
+        
+    params={"random_state": RANDOM_SEED,
+        "model_type": "logreg",
+        "scaler": None,
+        # "param_grid":str(param_grid),
+        "stratify":True, 
+        "data": "Shot distance and angle",}
+    experiment.log_parameters(params)
         
     experiment.end()
 
