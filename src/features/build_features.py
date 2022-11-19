@@ -394,7 +394,7 @@ def GetTrainValid():
 
     features_to_keep = GetFeaturesToKeep()
 
-    feature_names, target_name = features_to_keep[0:-2], features_to_keep[-1]
+    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
     feature_names = np.array(feature_names)
 
     df_features = data_df[feature_names]
@@ -443,7 +443,7 @@ def GetTest(season_type = "Regular"):
 
     features_to_keep = GetFeaturesToKeep()
 
-    feature_names, target_name = features_to_keep[0:-2], features_to_keep[-1]
+    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
     feature_names = np.array(feature_names)
 
     df_features = data_df[feature_names]
