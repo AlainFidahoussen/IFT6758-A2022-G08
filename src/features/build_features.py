@@ -403,7 +403,7 @@ def GetTrainValid():
     df_features = df_features.fillna(df_features.median())
 
     df_features['Shot Type'] = df_features['Shot Type'].fillna(df_features['Shot Type'].mode().iloc[0])
-    dummy_shot_type = pd.get_dummies(df_features['Shot Type'], prefix='Shot Type')
+    dummy_shot_type = pd.get_dummies(df_features['Shot Type'], prefix='Shot_Type')
     df_features = df_features.merge(dummy_shot_type, left_index=True, right_index=True)
     df_features = df_features.drop(columns=['Shot Type'])
 
@@ -411,6 +411,16 @@ def GetTrainValid():
     dummy_strength = pd.get_dummies(df_features['Strength'], prefix='Strength')
     df_features = df_features.merge(dummy_strength, left_index=True, right_index=True)
     df_features = df_features.drop(columns=['Strength'])
+    
+    df_features['Shooter Side'] = df_features['Shooter Side'].fillna(df_features['Shooter Side'].mode().iloc[0])
+    dummy_shooter_side = pd.get_dummies(df_features['Shooter Side'], prefix='Shooter_Side')
+    df_features = df_features.merge(dummy_shooter_side, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Shooter Side'])
+
+    df_features['Shooter Ice Position'] = df_features['Shooter Ice Position'].fillna(df_features['Shooter Ice Position'].mode().iloc[0])
+    dummy_shooter_ice_pos = pd.get_dummies(df_features['Shooter Ice Position'], prefix='Shooter_Ice_Position')
+    df_features = df_features.merge(dummy_shooter_ice_pos, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Shooter Ice Position'])
 
     # Update features_name
     feature_names = list(df_features.columns)
@@ -442,7 +452,7 @@ def GetTest(season_type = "Regular"):
     df_features = df_features.fillna(df_features.median())
 
     df_features['Shot Type'] = df_features['Shot Type'].fillna(df_features['Shot Type'].mode().iloc[0])
-    dummy_shot_type = pd.get_dummies(df_features['Shot Type'], prefix='Shot Type')
+    dummy_shot_type = pd.get_dummies(df_features['Shot Type'], prefix='Shot_Type')
     df_features = df_features.merge(dummy_shot_type, left_index=True, right_index=True)
     df_features = df_features.drop(columns=['Shot Type'])
 
@@ -450,6 +460,17 @@ def GetTest(season_type = "Regular"):
     dummy_strength = pd.get_dummies(df_features['Strength'], prefix='Strength')
     df_features = df_features.merge(dummy_strength, left_index=True, right_index=True)
     df_features = df_features.drop(columns=['Strength'])
+
+    df_features['Shooter Side'] = df_features['Shooter Side'].fillna(df_features['Shooter Side'].mode().iloc[0])
+    dummy_shooter_side = pd.get_dummies(df_features['Shooter Side'], prefix='Shooter_Side')
+    df_features = df_features.merge(dummy_shooter_side, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Shooter Side'])
+
+    df_features['Shooter Ice Position'] = df_features['Shooter Ice Position'].fillna(df_features['Shooter Ice Position'].mode().iloc[0])
+    dummy_shooter_ice_pos = pd.get_dummies(df_features['Shooter Ice Position'], prefix='Shooter_Ice_Position')
+    df_features = df_features.merge(dummy_shooter_ice_pos, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Shooter Ice Position'])
+
 
     # Update features_name
     feature_names = list(df_features.columns)
