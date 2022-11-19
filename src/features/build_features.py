@@ -376,19 +376,25 @@ def _compute_penalties_end(df_goals: pd.DataFrame, df_penalties: pd.DataFrame) -
     return df_penalties_end
 
 
+def GetFeaturesToKeep():
+
+    return ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
+            'Strength', 'Rebound', 'Speed From Previous Event', 'Change in Shot Angle', 
+            'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season', 'Shooter Side', 'Shooter Ice Position', 
+            'Num players With', 'Num players Against', 'Elapsed time since Power Play',
+            'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 'Last event distance', 'Last event angle', 
+            'Is Goal']
+
+
+
 def GetTrainValid():
     seasons_year = [2015, 2016, 2017, 2018]
     season_type = "Regular"
     data_df = build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
 
-    names = ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
-            'Strength', 'Rebound', 'Speed From Previous Event', 'Change in Shot Angle', 
-            'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season', 
-            'Num players With', 'Num players Against', 'Elapsed time since Power Play',
-            'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 'Last event distance', 'Last event angle', 
-            'Is Goal']
+    features_to_keep = GetFeaturesToKeep()
 
-    feature_names, target_name = names[0:-2], names[-1]
+    feature_names, target_name = features_to_keep[0:-2], features_to_keep[-1]
     feature_names = np.array(feature_names)
 
     df_features = data_df[feature_names]
@@ -425,14 +431,9 @@ def GetTest(season_type = "Regular"):
 
     data_df = build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
 
-    names = ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shooter Side', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
-            'Strength', 'Rebound', 'Speed From Previous Event', 'Change in Shot Angle', 
-            'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season', 
-            'Num players With', 'Num players Against', 'Elapsed time since Power Play',
-            'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 'Last event distance', 'Last event angle', 
-            'Is Goal']
+    features_to_keep = GetFeaturesToKeep()
 
-    feature_names, target_name = names[0:-2], names[-1]
+    feature_names, target_name = features_to_keep[0:-2], features_to_keep[-1]
     feature_names = np.array(feature_names)
 
     df_features = data_df[feature_names]
