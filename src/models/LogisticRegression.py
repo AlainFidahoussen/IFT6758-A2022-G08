@@ -53,7 +53,14 @@ def clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     experiment.log_dataset_hash(X_distance_train)
     
     clf_distance = LogisticRegression(random_state=RANDOM_SEED).fit(X_distance_train, y_train)
+    
+    with experiment.train():
+        y_distance_pred_train = clf_distance.predict(X_distance_train)
+        metrics = evaluate(y_train, y_distance_pred_train)
+        experiment.log_metrics(metrics)
+    
     pkl_filename = './models/LogisticRegression_distance.pkl'
+    # pkl_filename = 'LogisticRegression_distance.pkl'
     with open(pkl_filename, 'wb') as file:
         pickle.dump(clf_distance, file)
     experiment.log_model("LogisticRegression_distance", pkl_filename)
@@ -83,7 +90,14 @@ def clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     experiment.log_dataset_hash(X_angle_train)
     
     clf_angle = LogisticRegression(random_state=RANDOM_SEED).fit(X_angle_train, y_train)
+    
+    with experiment.train():
+        y_angle_pred_train = clf_angle.predict(X_angle_train)
+        metrics = evaluate(y_train, y_angle_pred_train)
+        experiment.log_metrics(metrics)
+        
     pkl_filename = './models/LogisticRegression_angle.pkl'
+    # pkl_filename = 'LogisticRegression_angle.pkl'
     with open(pkl_filename, 'wb') as file:
         pickle.dump(clf_distance, file)
     experiment.log_model("LogisticRegression_angle", pkl_filename)
@@ -112,7 +126,14 @@ def clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     experiment.log_dataset_hash(X_distance_angle_train)
     
     clf_distance_angle = LogisticRegression(random_state=RANDOM_SEED).fit(X_distance_angle_train, y_train)
+    
+    with experiment.train():
+        y_distance_angle_pred_train = clf_distance_angle.predict(X_distance_angle_train)
+        metrics = evaluate(y_train, y_distance_angle_pred_train)
+        experiment.log_metrics(metrics)
+        
     pkl_filename = './models/LogisticRegression_distance_angle.pkl'
+    # pkl_filename = 'LogisticRegression_distance_angle.pkl'
     with open(pkl_filename, 'wb') as file:
         pickle.dump(clf_distance, file)
     experiment.log_model("LogisticRegression_distance_angle", pkl_filename)
