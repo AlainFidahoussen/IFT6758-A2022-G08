@@ -2,6 +2,9 @@ import src.data.NHLDataManager as DataManager
 import numpy as np
 import os
 import pandas as pd
+from sklearn.model_selection import train_test_split
+
+RANDOM_SEED = 42
 
 # import warnings
 # warnings.filterwarnings('error')
@@ -373,7 +376,95 @@ def _compute_penalties_end(df_goals: pd.DataFrame, df_penalties: pd.DataFrame) -
     return df_penalties_end
 
 
+def GetTrainValid():
+    seasons_year = [2015, 2016, 2017, 2018]
+    season_type = "Regular"
+    data_df = build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
+
+    names = ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
+            'Strength', 'Rebound', 'Speed From Previous Event', 'Change in Shot Angle', 
+            'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season', 
+            'Num players With', 'Num players Against', 'Elapsed time since Power Play',
+            'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 'Last event distance', 'Last event angle', 
+            'Is Goal']
+
+    feature_names, target_name = names[0:-2], names[-1]
+    feature_names = np.array(feature_names)
+
+    df_features = data_df[feature_names]
+    df_targets = data_df[target_name]
+
+    df_features = df_features.fillna(df_features.median())
+
+    df_features['Shot Type'] = df_features['Shot Type'].fillna(df_features['Shot Type'].mode().iloc[0])
+    dummy_shot_type = pd.get_dummies(df_features['Shot Type'], prefix='Shot Type')
+    df_features = df_features.merge(dummy_shot_type, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Shot Type'])
+
+    df_features['Strength'] = df_features['Strength'].fillna(df_features['Strength'].mode().iloc[0])
+    dummy_strength = pd.get_dummies(df_features['Strength'], prefix='Strength')
+    df_features = df_features.merge(dummy_strength, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Strength'])
+
+    # Update features_name
+    feature_names = list(df_features.columns)
+    feature_names = np.array(feature_names)
+
+    X = df_features
+    y = df_targets
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
+
+    return X_train, X_valid, y_train, y_valid
+
+
+
+def GetTest(season_type = "Regular"):
+
+    seasons_year = [2019]
+
+    data_df = build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
+
+    names = ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
+            'Strength', 'Rebound', 'Speed From Previous Event', 'Change in Shot Angle', 
+            'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season', 
+            'Num players With', 'Num players Against', 'Elapsed time since Power Play',
+            'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 'Last event distance', 'Last event angle', 
+            'Is Goal']
+
+    feature_names, target_name = names[0:-2], names[-1]
+    feature_names = np.array(feature_names)
+
+    df_features = data_df[feature_names]
+    df_targets = data_df[target_name]
+
+    df_features = df_features.fillna(df_features.median())
+
+    df_features['Shot Type'] = df_features['Shot Type'].fillna(df_features['Shot Type'].mode().iloc[0])
+    dummy_shot_type = pd.get_dummies(df_features['Shot Type'], prefix='Shot Type')
+    df_features = df_features.merge(dummy_shot_type, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Shot Type'])
+
+    df_features['Strength'] = df_features['Strength'].fillna(df_features['Strength'].mode().iloc[0])
+    dummy_strength = pd.get_dummies(df_features['Strength'], prefix='Strength')
+    df_features = df_features.merge(dummy_strength, left_index=True, right_index=True)
+    df_features = df_features.drop(columns=['Strength'])
+
+    # Update features_name
+    feature_names = list(df_features.columns)
+    feature_names = np.array(feature_names)
+
+    X = df_features
+    y = df_targets
+
+    return X, y
+   
+
+
+
 if __name__ == '__main__':
 
     seasons_year = [2015, 2016, 2017, 2018, 2019]
     features_data_df = build_features(seasons_year, season_type = "Regular", with_player_stats=True, with_strength_stats=True)
+
+
