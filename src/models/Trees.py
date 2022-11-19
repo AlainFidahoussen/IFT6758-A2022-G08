@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv();
+
 import src.visualization.visualize as VizManager
 import src.data.NHLDataManager as DataManager
 import src.features.build_features as FeaturesManager
@@ -88,7 +91,6 @@ def GetData():
     # Update features_name
     feature_names = list(df_features.columns)
     feature_names = np.array(feature_names)
-
     X = df_features
     y = df_targets
 
@@ -97,9 +99,7 @@ def GetData():
 
 
 
-
-if __name__ == "__main__":
-
+def RandomForestHyperParameters():
 
     # setting the spec for bayes algorithm
     spec = {
@@ -175,3 +175,6 @@ if __name__ == "__main__":
 
         experiment.end()
   
+
+if __name__ == "__main__":
+    RandomForestHyperParameters()

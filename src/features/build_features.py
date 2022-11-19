@@ -425,7 +425,7 @@ def GetTest(season_type = "Regular"):
 
     data_df = build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
 
-    names = ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
+    names = ['Period', 'Period seconds', 'st_X', 'st_Y', 'Shooter Side', 'Shot Type', 'Shot distance', 'Shot angle', 'Is Empty',
             'Strength', 'Rebound', 'Speed From Previous Event', 'Change in Shot Angle', 
             'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season', 
             'Num players With', 'Num players Against', 'Elapsed time since Power Play',

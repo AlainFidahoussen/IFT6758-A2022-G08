@@ -462,17 +462,19 @@ class NHLDataManager:
         data = self.load_game(season_year, season_type, game_number)
 
         try:
-            data = data['liveData']['plays']
-            num_events = len(data['allPlays'])
+            players = data['gameData']['players']
 
-            list_goals = data['scoringPlays']
-            goal_events = [data['allPlays'][g] for g in list_goals]
-            shot_events = [data['allPlays'][ev] for ev in range(num_events) if data['allPlays'][ev]['result']['event'] == 'Shot']
-            all_events = [data['allPlays'][ev] for ev in range(num_events)]
+            plays_data = data['liveData']['plays']
+            num_events = len(plays_data['allPlays'])
+
+            list_goals = plays_data['scoringPlays']
+            goal_events = [plays_data['allPlays'][g] for g in list_goals]
+            shot_events = [plays_data['allPlays'][ev] for ev in range(num_events) if plays_data['allPlays'][ev]['result']['event'] == 'Shot']
+            all_events = [plays_data['allPlays'][ev] for ev in range(num_events)]
         except KeyError:
-            return ([], [], [])
+            return ([], [], [], [])
 
-        return (goal_events, shot_events, all_events)
+        return (goal_events, shot_events, all_events, players)
 
 
     def get_penalties(self, season_year:int, season_type:str, game_number:int) -> tuple:
@@ -578,7 +580,7 @@ class NHLDataManager:
         :rtype: pd.DataFrame
         """
 
-        (goal_events, shot_events, all_events) = self.get_goals_and_shots(season_year, season_type, game_number)
+        (goal_events, shot_events, all_events, players) = self.get_goals_and_shots(season_year, season_type, game_number)
 
 
         if (len(goal_events) == 0) & (len(shot_events) == 0):
@@ -595,12 +597,13 @@ class NHLDataManager:
         goals_shots_events = goal_events + shot_events
         num_events = len(goals_shots_events)
         df = pd.DataFrame(index=range(num_events),
-                          columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Shooter ID', 'Goalie', 'Goalie ID', 
+                          columns=['Game ID', 'Event Index', 'Time', 'Period', 'Team', 'Type', 'Shot Type', 'Shooter', 'Shooter ID', 'Shooter Side', 'Shooter Ice Position', 'Goalie', 'Goalie ID', 
                                    'Empty Net', 'Strength', 'X', 'Y', 'Last event type', 'Last event X', 'Last event Y', 'Last event elapsed time', 'Last event distance'])
 
 
         count = 0
         for event in goals_shots_events:
+
             # Difference between eventId and eventIdx
             event_idx = event['about']['eventIdx']
             df.loc[count]['Event Index'] = event_idx
@@ -663,6 +666,17 @@ class NHLDataManager:
             time_event_s = float(event['about']['periodTime'].split(':')[0]) * 60 + int(event['about']['periodTime'].split(':')[1])
             time_last_event_s = float(last_event['about']['periodTime'].split(':')[0]) * 60 + int(last_event['about']['periodTime'].split(':')[1])
             df.loc[count]['Last event elapsed time'] = time_event_s - time_last_event_s + 0.5
+
+            try:
+                shooter_id = f"ID{df.loc[count]['Shooter ID']}"
+                shooter_side = players[shooter_id]['shootsCatches']
+                df.loc[count]['Shooter Side'] = shooter_side
+
+                shooter_position = players[shooter_id]['primaryPosition']['code']
+                df.loc[count]['Shooter Ice Position'] = shooter_position
+
+            except KeyError:
+                pass
 
             count += 1
 
