@@ -77,6 +77,9 @@ class SelectFromLinearSVC(BaseEstimator, TransformerMixin):
         if os.path.exists(filename):
             with open(filename, 'rb') as file:
                 selector = pickle.load(file)
+            feature_names = np.array(X.columns)
+            self.selected_features = feature_names[selector.get_support()]
+            
             return selector
 
         else:
