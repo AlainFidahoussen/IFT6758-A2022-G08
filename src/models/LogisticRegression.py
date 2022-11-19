@@ -1,40 +1,141 @@
+import os
+import sys
+
+# Only for me
+script_dir = os.path.dirname( __file__ )
+module_dir = os.path.join(script_dir, '../..')
+sys.path.append(module_dir)
+
 # To load the environment variable defined in the .env file
 from dotenv import load_dotenv
 load_dotenv();
-
-import os
 
 # import comet_ml at the top of your file
 from comet_ml import Experiment
 import numpy as np
 import seaborn as sns
 
+
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 
 import src.visualization.visualize as VizManager
 import src.features.build_features as FeaturesManager
-from sklearn.metrics import classification_report
 
-from joblib import dump, load
+import pickle
 
 
-# Create an experiment with your api key
-experiment = Experiment(
-    api_key=os.environ.get('COMET_API_KEY'), # create a COMET_API_KEY env var in the .env file with containing the api key
-    project_name="milestone-2",
-    workspace="ift6758-a22-g08",
-)
+def start_experiment():
+    # Create an experiment with your api key
+    experiment = Experiment(
+        api_key=os.environ.get('COMET_API_KEY'), # create a COMET_API_KEY env var in the .env file containing the api key
+        project_name="Logistic Regression",
+        workspace="ift6758-a22-g08",
+    )
+    return experiment
+
 
 def evaluate(y_true, y_pred):
     return {
-      'f1-score': f1_score(y_true, y_pred)
+        'precision': precision_score(y_true, y_pred),
+        'recall': recall_score(y_true, y_pred),
+        'macro f1': f1_score(y_true, y_pred, average='macro'),
+        'accuracy': accuracy_score(y_true, y_pred),
     }
 
-RANDOM_SEED = 42
 
-def Do():
+def clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
+    experiment = start_experiment()
+    
+    experiment.set_name('LogisticRegression_distance')
+    X_distance_train, X_distance_valid = X_train[['Shot distance']], X_valid[['Shot distance']]
+    experiment.log_dataset_hash(X_distance_train)
+    
+    clf_distance = LogisticRegression(random_state=RANDOM_SEED).fit(X_distance_train, y_train)
+    pkl_filename = './models/LogisticRegression_distance.pkl'
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump(clf_distance, file)
+    experiment.log_model("LogisticRegression_distance", pkl_filename)
+    experiment.register_model("LogisticRegression_distance")
+
+    with experiment.validate():
+        y_distance_pred = clf_distance.predict(X_distance_valid)
+        metrics = evaluate(y_valid, y_distance_pred)
+        experiment.log_metrics(metrics)
+        
+    params={"random_state": RANDOM_SEED,
+        "model_type": "logreg",
+        "scaler": None,
+        # "param_grid":str(param_grid),
+        "stratify":True, 
+        "data": "Shot distance",}
+    experiment.log_parameters(params)
+    
+    experiment.end()
+    
+    
+def clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
+    experiment = start_experiment()
+    
+    experiment.set_name('LogisticRegression_angle')
+    X_angle_train, X_angle_valid = X_train[['Shot angle']], X_valid[['Shot angle']]
+    experiment.log_dataset_hash(X_angle_train)
+    
+    clf_angle = LogisticRegression(random_state=RANDOM_SEED).fit(X_angle_train, y_train)
+    pkl_filename = './models/LogisticRegression_angle.pkl'
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump(clf_distance, file)
+    experiment.log_model("LogisticRegression_angle", pkl_filename)
+    experiment.register_model("LogisticRegression_angle")
+
+    with experiment.validate():
+        y_angle_pred = clf_angle.predict(X_angle_valid)
+        metrics = evaluate(y_valid, y_angle_pred)
+        experiment.log_metrics(metrics)
+        
+    params={"random_state": RANDOM_SEED,
+        "model_type": "logreg",
+        "scaler": None,
+        # "param_grid":str(param_grid),
+        "stratify":True, 
+        "data": "Shot angle",}
+    experiment.log_parameters(params)
+    
+    experiment.end()
+    
+    
+def clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
+    experiment = start_experiment()
+    experiment.set_name('LogisticRegression_distance_angle')
+    X_distance_angle_train, X_distance_angle_valid = X_train, X_valid
+    experiment.log_dataset_hash(X_distance_angle_train)
+    
+    clf_distance_angle = LogisticRegression(random_state=RANDOM_SEED).fit(X_distance_angle_train, y_train)
+    pkl_filename = './models/LogisticRegression_distance_angle.pkl'
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump(clf_distance, file)
+    experiment.log_model("LogisticRegression_distance_angle", pkl_filename)
+    experiment.register_model("LogisticRegression_distance_angle")
+
+    with experiment.validate():
+        y_distance_angle_pred = clf_distance_angle.predict(X_distance_angle_valid)
+        metrics = evaluate(y_valid, y_distance_angle_pred)
+        experiment.log_metrics(metrics)
+        
+    params={"random_state": RANDOM_SEED,
+        "model_type": "logreg",
+        "scaler": None,
+        # "param_grid":str(param_grid),
+        "stratify":True, 
+        "data": "Shot distance and angle",}
+    experiment.log_parameters(params)
+        
+    experiment.end()
+
+    
+def main():
+    RANDOM_SEED = 42
     seasons_year = [2015, 2016, 2017, 2018]
     season_type = "Regular"
     features_data = FeaturesManager.build_features(seasons_year, season_type)
@@ -46,56 +147,13 @@ def Do():
     y = features_data['Is Goal']
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
-
-    # Logistic Regression - Distance only
-    X_distance_train, X_distance_valid = X_train[['Shot distance']], X_valid[['Shot distance']]
-    clf_distance = LogisticRegression(random_state=RANDOM_SEED).fit(X_distance_train, y_train)
-    y_pred = clf_distance.predict(X_distance_valid)
-    report_distance = classification_report(y_valid, y_pred, output_dict=True)
-    print(report_distance)
-    filename_model = './models/LogisticRegression_Distance.joblib'
-    dump(clf_distance, filename_model) 
-    experiment.log_model("Logistic Regression", filename_model)
-    # experiment.register_model("Logistic Regression")
-
-    # experiment.log_dataset_hash(X_distance_train)
-    experiment.log_metrics(report_distance['macro avg'], prefix='macro avg')
-    # experiment.log_confusion_matrix(y_valid, y_pred)
-
-
-    # Logistic Regression - Angle only
-    X_angle_train, X_angle_valid = X_train[['Shot angle']], X_valid[['Shot angle']]
-    clf_angle = LogisticRegression(random_state=RANDOM_SEED).fit(X_angle_train, y_train)
-
-    # # Log Metrics
-    # with experiment.train():
-    #     y_train_pred = clf_angle.predict(X_angle_train)
-    #     metrics = evaluate(y_train, y_train_pred)
-    #     experiment.log_metrics(metrics)
-
-    # with experiment.test():
-    #     y_valid_pred = clf_angle.predict(X_angle_valid)
-    #     metrics = evaluate(y_valid, y_valid_pred)
-    #     experiment.log_metrics(metrics)
-
-
-
-    # Logistic Regression - Distance and Angle
-    X_distance_angle_train, X_distance_angle_valid = X_train, X_valid
-    clf_distance_angle = LogisticRegression(random_state=RANDOM_SEED).fit(X_distance_angle_train, y_train)
-
-    # # Log Metrics
-    # with experiment.train():
-    #     y_train_pred = clf_distance_angle.predict(X_distance_angle_train)
-    #     metrics = evaluate(y_train, y_train_pred)
-    #     experiment.log_metrics(metrics)
-
-    # with experiment.test():
-    #     y_valid_pred = clf_distance_angle.predict(X_distance_angle_valid)
-    #     metrics = evaluate(y_valid, y_valid_pred)
-    #     experiment.log_metrics(metrics)
-
-    # experiment.end()
+    
+    clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+    clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+    clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+    
 
 if __name__ == "__main__":
-    Do()
+    main()
+
+

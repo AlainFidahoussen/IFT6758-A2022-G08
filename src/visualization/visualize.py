@@ -127,8 +127,7 @@ def plot_ROC(classifiers_tuple: list[tuple], add_random=True) -> None:
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.0])
     plt.legend(loc="lower right")
-    plt.show()
-
+    plt.savefig(f'../../blogpost/ROC_{clf_name}.png', bbox_inches="tight")
 
 
 def plot_Cumulative_Goal(classifiers_tuple: list[tuple], add_random=True) -> None:
@@ -183,8 +182,8 @@ def plot_Cumulative_Goal(classifiers_tuple: list[tuple], add_random=True) -> Non
     plt.xlim([100.0, 0.0])
     plt.ylim([0.0, 100.0])
     plt.yticks(range(0, 110, 10));
-    plt.legend(loc="upper left");
-    plt.show()
+    plt.legend(loc="upper right");
+    plt.savefig(f'../../blogpost/Shot_Proba_{clf_name}.png', bbox_inches="tight")
 
 
 def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True) -> None:
@@ -251,7 +250,7 @@ def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True) -> None:
     plt.yticks(range(0, 110, 10))
 
     plt.legend(loc="upper left");
-    plt.show()
+    plt.savefig(f'../../blogpost/Goal_Rate_{clf_name}.png', bbox_inches="tight")
 
 
 def plot_Calibration(classifiers_tuple: list[tuple], add_random=True) -> None:
@@ -259,7 +258,7 @@ def plot_Calibration(classifiers_tuple: list[tuple], add_random=True) -> None:
     fig = plt.figure(figsize=(8, 8))
     gs = GridSpec(2, 2)
     ax_calibration_curve = fig.add_subplot(gs[:2, :2])
-    nbins = 20
+    nbins = 10
 
     for count, classifier in enumerate(classifiers_tuple):
 
@@ -278,10 +277,11 @@ def plot_Calibration(classifiers_tuple: list[tuple], add_random=True) -> None:
 
     ax_calibration_curve.set_title("Calibration plots");
     plt.legend(loc="upper left")
-    plt.show()
+    plt.savefig(f'../../blogpost/Calibration_{clf_name}.png', bbox_inches="tight")
 
 
 def plot_all_figures(classifiers_tuple: list[tuple], add_random=True) -> None:
+
 
     # ----------------------------------------------
     # First plot: ROC Curve
