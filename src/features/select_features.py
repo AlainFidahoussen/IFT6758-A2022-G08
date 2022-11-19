@@ -24,15 +24,22 @@ class SelectFromTree(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
 
-        selector = SelectFromModel(RandomForestClassifier(
-            random_state=RANDOM_SEED, 
-            n_estimators = 100, 
-            class_weight='balanced'))
-        selector.fit(X, y)
+        filename = os.path.join(self.pkl_dir, 'forest.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+            return selector
 
-        os.makedirs(self.pkl_dir, exist_ok=True)
-        with open(os.path.join(self.pkl_dir, 'forest.pkl'), 'wb') as file:
-            pickle.dump(selector, file)
+        else:
+            selector = SelectFromModel(RandomForestClassifier(
+                random_state=RANDOM_SEED, 
+                n_estimators = 100, 
+                class_weight='balanced'))
+            selector.fit(X, y)
+
+            os.makedirs(self.pkl_dir, exist_ok=True)
+            with open(os.path.join(self.pkl_dir, 'forest.pkl'), 'wb') as file:
+                pickle.dump(selector, file)
 
         return self
 
