@@ -174,15 +174,14 @@ class SelectFromPCA():
 
         X_cont, X_other = X[continuous_col], X.drop(continuous_col, axis=1)
         
+        X_cont_st = StandardScaler().fit_transform(X_cont)
         
-        return X_cont, X_other
+        return X_cont_st, X_other
         
     def fit(self, X, y=None):
         
-        X_cont, X_other = self.separate_X(X)
+        X_cont_st, X_other = self.separate_X(X)
         
-        X_cont_st = StandardScaler().fit_transform(X_cont)
-
         self.selector = PCA(n_components=self.n_components)
         self.selector.fit(X_cont_st)  
 
@@ -192,8 +191,9 @@ class SelectFromPCA():
     def transform(self, X, y=None):
         if self.selector is not None: 
             
-            X_cont, X_other = self.separate_X(X)
-            X_PCA = self.selector.transform(X_cont)
+            X_cont_st, X_other = self.separate_X(X)
+    
+            X_PCA = self.selector.transform(X_cont_st)
             
             principalDf = pd.DataFrame(data = X_PCA, columns = [f'PC{i}' for i in range(1, self.n_components+1)])
             X_final = pd.concat([principalDf, X_other], axis = 1)
@@ -215,36 +215,3 @@ class SelectFromPCA():
             return X_final, y
         else:
             return X, y
-
-        
-# def SelectFromPCA(X, y, n_components):
-#     continuous_col = ['Period seconds', 'st_X', 'st_Y', 'Shot distance',
-#        'Shot angle', 'Speed From Previous Event',
-#        'Change in Shot Angle', 'Shooter Goal Ratio Last Season',
-#        'Goalie Goal Ratio Last Season', 'Elapsed time since Power Play',
-#        'Last event elapsed time', 'Last event st_X', 'Last event st_Y',
-#        'Last event distance', 'Last event angle']
-    
-#     X_cont, X_other = X[continuous_col], X.drop(continuous_col, axis=1) # 15, 22
-#     X_cont_st = StandardScaler().fit_transform(X_cont)
-#     pca = PCA(n_components=n_components)
-#     X_PCA = pca.fit_transform(X_cont_st)
-#     cev = np.cumsum(pca.explained_variance_ratio_)
-#     cev = np.insert(cev, 0, 0) # add 0 if 0 components
-    
-#     principalDf = pd.DataFrame(data = X_PCA, columns = [f'PC{i}' for i in range(1, n_components+1)])
-#     X_final = pd.concat([principalDf, X_other], axis = 1)
-    
-#     print(f'Cumulative explained variance with {n_components} components: {cev[-1]}')
-        
-#     plt.figure(figsize=(15,10))
-#     plt.ylim(0.0,1.1)
-#     plt.plot(cev, linewidth=3)
-#     plt.xlabel('number of components', fontsize=21)
-#     plt.ylabel('cumulative explained variance', fontsize=21)
-#     plt.title('Scree Plot using PCA', fontsize=24)
-#     plt.rc('font', size=16)
-#     plt.grid()
-#     plt.show()
-    
-#     return X_final, y
