@@ -386,6 +386,12 @@ def GetFeaturesToKeep():
             'Is Goal']
 
 
+def GetCategoricalIndices() -> list:
+    return [[1, 2, 3, 4, 5, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19]]
+
+def GetNumericalIndices() -> list:
+    return [0, 6, 7, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+
 
 def GetTrainValid():
     seasons_year = [2015, 2016, 2017, 2018]

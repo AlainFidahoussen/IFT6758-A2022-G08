@@ -13,6 +13,8 @@ import pickle
 from imblearn.ensemble import BalancedRandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.feature_selection import RFECV
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import StratifiedKFold
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -26,87 +28,82 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 
-class SelectFromTree(BaseEstimator, TransformerMixin):
+class SelectFromRandomForest(BaseEstimator, TransformerMixin):
 
     def __init__(self, **kwargs):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
+        self.selector = None
 
     def fit(self, X, y=None):
 
-        filename = os.path.join(self.pkl_dir, 'forest.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector
-
-        else:
-            selector = SelectFromModel(RandomForestClassifier(
+        self.selector = SelectFromModel(RandomForestClassifier(
                 random_state=RANDOM_SEED, 
                 n_estimators = 100, 
                 class_weight='balanced'))
-            selector.fit(X, y)
+        self.selector.fit(X, y)
 
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'forest.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
-
-        return self
-
+        return self.selector
 
     def transform(self, X, y=None):
-        
-        filename = os.path.join(self.pkl_dir, 'forest.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-        
-            return selector.transform(X), y
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new
         else:
-            return X, y
-
+            return X
 
 
 class SelectFromTree_RecursiveElimination(BaseEstimator, TransformerMixin):
 
     def init(self, **kwargs):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
+        self.selector = None
 
     def fit(self, X, y=None):
 
-        filename = os.path.join(self.pkl_dir, 'tree_recursive_elimination.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector
+        min_features_to_select = 1
 
-        else:
-            min_features_to_select = 1
+        self.selector = RFECV(
+            estimator=DecisionTreeClassifier(),
+            step=1,
+            cv=StratifiedKFold(2),
+            scoring="f1_macro",
+            min_features_to_select=min_features_to_select)
+        self.selector.fit(X, y)
 
-            selector = RFECV(
-                estimator=DecisionTreeClassifier(),
-                step=1,
-                cv=StratifiedKFold(2),
-                scoring="f1_macro",
-                min_features_to_select=min_features_to_select,
-            )
-            selector.fit(X, y)
-
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'tree_recursive_elimination.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
+        return self.selector
 
 
     def transform(self, X, y=None):
-
-        filename = os.path.join(self.pkl_dir, 'tree_recursive_elimination.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector.transform(X), y
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new
         else:
-            return X, y
+            return X
+
+
+        
+class SelectFromLinearSVC_II(BaseEstimator, TransformerMixin):
+
+    def init(self, **kwargs):
+        self.selector = None
+
+
+    def fit(self, X, y=None):
+
+        self.selector = SelectFromModel(LinearSVC(
+                C=0.01, 
+                penalty="l1", 
+                dual=False,
+                random_state=RANDOM_SEED))
+        self.selector.fit(X, y)
+
+        return self.selector
+
+    def transform(self, X, y=None):
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new
+        else:
+            return X
+
         
         
 class SelectFromLinearSVC(BaseEstimator, TransformerMixin):
