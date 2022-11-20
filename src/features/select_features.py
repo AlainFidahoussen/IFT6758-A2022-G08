@@ -10,11 +10,16 @@ from sklearn.ensemble import RandomForestClassifier
 import pickle
 
 
-from imblearn.ensemble import BalancedRandomForestClassifier
+#from imblearn.ensemble import BalancedRandomForestClassifier
 from sklearn.feature_selection import SelectFromModel
 from sklearn.feature_selection import RFECV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.feature_selection import SequentialFeatureSelector
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -22,7 +27,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 from sklearn.decomposition import PCA
 
 from sklearn.preprocessing import StandardScaler
@@ -170,7 +175,6 @@ class SelectFromPCA():
            'Last event distance', 'Last event angle']
 
         X_cont, X_other = X[continuous_col], X.drop(continuous_col, axis=1)
-        X_other.reset_index(drop=True, inplace=True)
         
         X_cont_st = StandardScaler().fit_transform(X_cont)
         
@@ -200,16 +204,247 @@ class SelectFromPCA():
             cev = np.insert(cev, 0, 0)
             print(f'Cumulative explained variance with {self.n_components} components: {cev[-1]}')
 
-            # plt.figure(figsize=(15,10))
-            # plt.ylim(0.0,1.1)
-            # plt.plot(cev, linewidth=3)
-            # plt.xlabel('number of components', fontsize=21)
-            # plt.ylabel('cumulative explained variance', fontsize=21)
-            # plt.title('Scree Plot using PCA', fontsize=24)
-            # plt.rc('font', size=16)
-            # plt.grid()
-            # plt.show()
+            plt.figure(figsize=(15,10))
+            plt.ylim(0.0,1.1)
+            plt.plot(cev, linewidth=3)
+            plt.xlabel('number of components', fontsize=21)
+            plt.ylabel('cumulative explained variance', fontsize=21)
+            plt.title('Scree Plot using PCA', fontsize=24)
+            plt.rc('font', size=16)
+            plt.grid()
+            plt.show()
         
             return X_final, y
         else:
             return X, y
+
+class SelectFromVarianceThreshold(BaseEstimator, TransformerMixin):
+
+    def __init__(self,threshold=0.5):
+        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
+        self.pkl_dir = dir
+        self.threshold = threshold
+
+    def fit(self, X, y=None):
+
+        filename = os.path.join(self.pkl_dir, 'variance_threshold_selector.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+            return selector
+
+        else:
+            selector = VarianceThreshold(self.threshold)
+            selector.fit(X, y)
+
+            os.makedirs(self.pkl_dir, exist_ok=True)
+            with open(os.path.join(self.pkl_dir, 'variance_threshold_selector.pkl'), 'wb') as file:
+                pickle.dump(selector, file)
+
+        return self
+
+
+    def transform(self, X, y=None):
+        
+        filename = os.path.join(self.pkl_dir, 'variance_threshold_selector.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+        
+            return selector.transform(X), y
+        else:
+            return X, y
+        
+class SelectFromKBest_chi2(BaseEstimator, TransformerMixin):
+
+    def __init__(self,k=22):
+        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
+        self.pkl_dir = dir
+        self.k = k
+        
+    def separate_X(self, X) :
+        numerical_columns = [
+        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+        'Speed From Previous Event', 'Change in Shot Angle', 
+        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+        'Last event distance', 'Last event angle']
+        
+        categorical_columns = [c for c in X.columns if c not in numerical_columns]
+
+        X_cat =  X[categorical_columns]
+        
+        return X_cat
+
+    def fit(self, X, y=None):
+        
+       
+        filename = os.path.join(self.pkl_dir, 'kbest_selector_chi2.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+            return selector
+
+        else:
+            X_cat = self.separate_X(X)
+            selector = SelectKBest(score_func=chi2, k=self.k)
+            selector.fit(X_cat, y)
+            os.makedirs(self.pkl_dir, exist_ok=True)
+            with open(os.path.join(self.pkl_dir, 'kbest_selector_chi2.pkl'), 'wb') as file:
+                pickle.dump(selector, file)
+
+        return self
+
+
+    def transform(self, X, y=None):
+        X_cat = self.separate_X(X)
+        filename = os.path.join(self.pkl_dir, 'kbest_selector_chi2.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+        
+            return selector.transform(X_cat), y
+        else:
+            return X, y
+
+class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
+
+    def __init__(self,k=22):
+        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
+        self.pkl_dir = dir
+        self.k = k
+        
+    def separate_X(self, X) :
+        numerical_columns = [
+        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+        'Speed From Previous Event', 'Change in Shot Angle', 
+        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+        'Last event distance', 'Last event angle']
+        
+        categorical_columns = [c for c in X.columns if c not in numerical_columns]
+
+        X_cat =  X[categorical_columns]
+        
+        return X_cat
+
+    def fit(self, X, y=None):
+        
+       
+        filename = os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+            return selector
+
+        else:
+            X_cat = self.separate_X(X)
+            selector = SelectKBest(score_func=mutual_info_classif, k=self.k)
+            selector.fit(X_cat, y)
+            os.makedirs(self.pkl_dir, exist_ok=True)
+            with open(os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl'), 'wb') as file:
+                pickle.dump(selector, file)
+
+        return self
+
+
+    def transform(self, X, y=None):
+        X_cat = self.separate_X(X)
+        filename = os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+        
+            return selector.transform(X_cat), y
+        else:
+            return X, y
+        
+class SelectFromAnova(BaseEstimator, TransformerMixin):
+
+    def __init__(self,k=15):
+        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
+        self.pkl_dir = dir
+        self.k = k
+        
+    def separate_X(self, X) :
+        numerical_columns = [
+        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+        'Speed From Previous Event', 'Change in Shot Angle', 
+        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+        'Last event distance', 'Last event angle']
+
+        X_num =  X[numerical_columns]
+        
+        return X_num
+
+    def fit(self, X, y=None):
+        
+       
+        filename = os.path.join(self.pkl_dir, 'anova_selector.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+            return selector
+
+        else:
+            X_num = self.separate_X(X)
+            selector = SelectKBest(score_func=f_classif, k=self.k)
+            selector.fit(X_num, y)
+            os.makedirs(self.pkl_dir, exist_ok=True)
+            with open(os.path.join(self.pkl_dir, 'anova_selector_.pkl'), 'wb') as file:
+                pickle.dump(selector, file)
+
+        return self
+
+
+    def transform(self, X, y=None):
+        X_num = self.separate_X(X)
+        filename = os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl')
+        if os.path.exists(filename):
+            with open(filename, 'rb') as file:
+                selector = pickle.load(file)
+        
+            return selector.transform(X_num), y
+        else:
+            return X, y
+        
+class SelectFromSVCForward(BaseEstimator, TransformerMixin):
+
+    def __init__(self, n = 37):
+        self.selector = None
+        self.n = n
+        
+
+    def fit(self, X, y=None):
+
+        self.selector = SequentialFeatureSelector(SVC(), scoring="f1_macro",cv=StratifiedKFold(2),n_features_to_select=self.n, direction="forward")
+        self.selector.fit(X, y)
+        return self.selector
+
+    def transform(self, X, y=None):
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new
+        else:
+            return X
+        
+class SelectFromSVCBackward(BaseEstimator, TransformerMixin):
+
+    def __init__(self, n = 37):
+        self.selector = None
+        self.n = n
+
+    def fit(self, X, y=None):
+
+        self.selector = SequentialFeatureSelector(SVC(), scoring="f1_macro",cv=StratifiedKFold(2),n_features_to_select=self.n, direction="backward")
+        self.selector.fit(X, y)
+        return self.selector
+
+    def transform(self, X, y=None):
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new,y
+        else:
+            return X,y
+
