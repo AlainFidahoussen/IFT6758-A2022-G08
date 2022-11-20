@@ -170,6 +170,7 @@ class SelectFromPCA():
            'Last event distance', 'Last event angle']
 
         X_cont, X_other = X[continuous_col], X.drop(continuous_col, axis=1)
+        X_other.reset_index(drop=True, inplace=True)
         
         X_cont_st = StandardScaler().fit_transform(X_cont)
         
@@ -199,15 +200,15 @@ class SelectFromPCA():
             cev = np.insert(cev, 0, 0)
             print(f'Cumulative explained variance with {self.n_components} components: {cev[-1]}')
 
-            plt.figure(figsize=(15,10))
-            plt.ylim(0.0,1.1)
-            plt.plot(cev, linewidth=3)
-            plt.xlabel('number of components', fontsize=21)
-            plt.ylabel('cumulative explained variance', fontsize=21)
-            plt.title('Scree Plot using PCA', fontsize=24)
-            plt.rc('font', size=16)
-            plt.grid()
-            plt.show()
+            # plt.figure(figsize=(15,10))
+            # plt.ylim(0.0,1.1)
+            # plt.plot(cev, linewidth=3)
+            # plt.xlabel('number of components', fontsize=21)
+            # plt.ylabel('cumulative explained variance', fontsize=21)
+            # plt.title('Scree Plot using PCA', fontsize=24)
+            # plt.rc('font', size=16)
+            # plt.grid()
+            # plt.show()
         
             return X_final, y
         else:
