@@ -440,6 +440,80 @@ def GetTrainValid():
     return X_train, X_valid, y_train, y_valid
 
 
+def GetTrainValid_II():
+    seasons_year = [2015, 2016, 2017, 2018]
+    season_type = "Regular"
+    data_df = build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
+
+    features_to_keep = GetFeaturesToKeep()
+
+    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
+    feature_names = np.array(feature_names)
+
+    df_features = data_df[feature_names]
+    df_targets = data_df[target_name]
+    # ---------- split before to prevent data leakage
+    X_train, X_valid, y_train, y_valid = train_test_split(df_features, df_targets, test_size=0.2, random_state=RANDOM_SEED, stratify=df_targets)
+    # ---------- reset index after random shuffle split
+    X_train.reset_index(drop=True, inplace=True)
+    X_valid.reset_index(drop=True, inplace=True)
+    y_train.reset_index(drop=True, inplace=True)
+    y_valid.reset_index(drop=True, inplace=True)
+    # ---------- fill numerical col with X_train median
+    X_train_median = X_train.median()
+    X_train = X_train.fillna(X_train_median)
+    X_valid = X_valid.fillna(X_train_median)
+    # ---------- 
+    shot_type_mode = X_train['Shot Type'].mode().iloc[0]
+    X_train['Shot Type'] = X_train['Shot Type'].fillna(shot_type_mode)
+    dummy_shot_type = pd.get_dummies(X_train['Shot Type'], prefix='Shot_Type')
+    X_train = X_train.merge(dummy_shot_type, left_index=True, right_index=True)
+    X_train = X_train.drop(columns=['Shot Type'])
+
+    X_valid['Shot Type'] = X_valid['Shot Type'].fillna(shot_type_mode)
+    dummy_shot_type = pd.get_dummies(X_valid['Shot Type'], prefix='Shot_Type')
+    X_valid = X_valid.merge(dummy_shot_type, left_index=True, right_index=True)
+    X_valid = X_valid.drop(columns=['Shot Type'])
+    # ----------
+    strength_mode = X_train['Strength'].mode().iloc[0]
+    X_train['Strength'] = X_train['Strength'].fillna(strength_mode)
+    dummy_strength = pd.get_dummies(X_train['Strength'], prefix='Strength')
+    X_train = X_train.merge(dummy_strength, left_index=True, right_index=True)
+    X_train = X_train.drop(columns=['Strength'])
+    
+    X_valid['Strength'] = X_valid['Strength'].fillna(strength_mode)
+    dummy_strength = pd.get_dummies(X_valid['Strength'], prefix='Strength')
+    X_valid = X_valid.merge(dummy_strength, left_index=True, right_index=True)
+    X_valid = X_valid.drop(columns=['Strength'])
+    # ----------
+    shooter_side_mode = X_train['Shooter Side'].mode().iloc[0]
+    X_train['Shooter Side'] = X_train['Shooter Side'].fillna(shooter_side_mode)
+    dummy_shooter_side = pd.get_dummies(X_train['Shooter Side'], prefix='Shooter_Side')
+    X_train = X_train.merge(dummy_shooter_side, left_index=True, right_index=True)
+    X_train = X_train.drop(columns=['Shooter Side'])
+    
+    X_valid['Shooter Side'] = X_valid['Shooter Side'].fillna(shooter_side_mode)
+    dummy_shooter_side = pd.get_dummies(X_valid['Shooter Side'], prefix='Shooter_Side')
+    X_valid = X_valid.merge(dummy_shooter_side, left_index=True, right_index=True)
+    X_valid = X_valid.drop(columns=['Shooter Side'])
+    # ----------
+    shooter_ice_pos_mode = X_train['Shooter Ice Position'].mode().iloc[0]
+    X_train['Shooter Ice Position'] = X_train['Shooter Ice Position'].fillna(shooter_ice_pos_mode)
+    dummy_shooter_ice_pos = pd.get_dummies(X_train['Shooter Ice Position'], prefix='Shooter_Ice_Position')
+    X_train = X_train.merge(dummy_shooter_ice_pos, left_index=True, right_index=True)
+    X_train = X_train.drop(columns=['Shooter Ice Position'])
+    
+    X_valid['Shooter Ice Position'] = X_valid['Shooter Ice Position'].fillna(shooter_ice_pos_mode)
+    dummy_shooter_ice_pos = pd.get_dummies(X_valid['Shooter Ice Position'], prefix='Shooter_Ice_Position')
+    X_valid = X_valid.merge(dummy_shooter_ice_pos, left_index=True, right_index=True)
+    X_valid = X_valid.drop(columns=['Shooter Ice Position'])
+
+    # Update features_name
+    feature_names = list(X_train.columns)
+    feature_names = np.array(X_train)
+
+    return X_train, X_valid, y_train, y_valid
+
 
 def GetTest(season_type = "Regular"):
 
