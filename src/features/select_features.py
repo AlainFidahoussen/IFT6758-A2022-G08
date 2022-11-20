@@ -19,6 +19,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.feature_selection import mutual_info_classif
+from sklearn.feature_selection import f_classif
 from sklearn.feature_selection import SequentialFeatureSelector
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -221,45 +222,27 @@ class SelectFromPCA():
 class SelectFromVarianceThreshold(BaseEstimator, TransformerMixin):
 
     def __init__(self,threshold=0.5):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
+        self.selector = None
         self.threshold = threshold
 
     def fit(self, X, y=None):
 
-        filename = os.path.join(self.pkl_dir, 'variance_threshold_selector.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector
-
-        else:
-            selector = VarianceThreshold(self.threshold)
-            selector.fit(X, y)
-
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'variance_threshold_selector.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
-
-        return self
+        self.selector = VarianceThreshold(self.threshold)
+        self.selector.fit(X, y)
+        return self.selector
 
 
     def transform(self, X, y=None):
-        
-        filename = os.path.join(self.pkl_dir, 'variance_threshold_selector.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-        
-            return selector.transform(X), y
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new,y
         else:
-            return X, y
+            return X,y
         
 class SelectFromKBest_chi2(BaseEstimator, TransformerMixin):
 
     def __init__(self,k=22):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
+        self.selector = None
         self.k = k
         
     def separate_X(self, X) :
@@ -278,40 +261,24 @@ class SelectFromKBest_chi2(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         
-       
-        filename = os.path.join(self.pkl_dir, 'kbest_selector_chi2.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector
-
-        else:
-            X_cat = self.separate_X(X)
-            selector = SelectKBest(score_func=chi2, k=self.k)
-            selector.fit(X_cat, y)
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'kbest_selector_chi2.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
-
-        return self
+        X_cat = self.separate_X(X)
+        self.selector = SelectKBest(score_func=chi2, k=self.k)
+        self.selector.fit(X_cat, y)
+        return self.selector
 
 
     def transform(self, X, y=None):
         X_cat = self.separate_X(X)
-        filename = os.path.join(self.pkl_dir, 'kbest_selector_chi2.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-        
-            return selector.transform(X_cat), y
+        if self.selector is not None: 
+            X_new = self.selector.transform(X_cat)
+            return X_new,y
         else:
-            return X, y
+            return X,y
 
 class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
 
     def __init__(self,k=22):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
+        self.selector = None
         self.k = k
         
     def separate_X(self, X) :
@@ -330,40 +297,25 @@ class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         
-       
-        filename = os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector
+        X_cat = self.separate_X(X)
+        self.selector = SelectKBest(score_func=mutual_info_classif, k=self.k)
+        self.selector.fit(X_cat, y)
 
-        else:
-            X_cat = self.separate_X(X)
-            selector = SelectKBest(score_func=mutual_info_classif, k=self.k)
-            selector.fit(X_cat, y)
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
-
-        return self
+        return self.selector
 
 
     def transform(self, X, y=None):
         X_cat = self.separate_X(X)
-        filename = os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-        
-            return selector.transform(X_cat), y
+        if self.selector is not None: 
+            X_new = self.selector.transform(X_cat)
+            return X_new,y
         else:
-            return X, y
+            return X,y
         
 class SelectFromAnova(BaseEstimator, TransformerMixin):
 
     def __init__(self,k=15):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
+        self.selector = None
         self.k = k
         
     def separate_X(self, X) :
@@ -380,34 +332,21 @@ class SelectFromAnova(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         
-       
-        filename = os.path.join(self.pkl_dir, 'anova_selector.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            return selector
+        X_num = self.separate_X(X)
+        self.selector = SelectKBest(score_func=f_classif, k=self.k)
+        self.selector.fit(X_num, y)
 
-        else:
-            X_num = self.separate_X(X)
-            selector = SelectKBest(score_func=f_classif, k=self.k)
-            selector.fit(X_num, y)
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'anova_selector_.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
-
-        return self
+        return self.selector
 
 
     def transform(self, X, y=None):
         X_num = self.separate_X(X)
-        filename = os.path.join(self.pkl_dir, 'kbest_selector_mi.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-        
-            return selector.transform(X_num), y
+        if self.selector is not None: 
+            X_new = self.selector.transform(X_num)
+            return X_new,y
         else:
-            return X, y
+            return X,y
+
         
 class SelectFromSVCForward(BaseEstimator, TransformerMixin):
 
