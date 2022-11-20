@@ -86,7 +86,7 @@ class SelectFromTree_RecursiveElimination(BaseEstimator, TransformerMixin):
 
 
         
-class SelectFromLinearSVC_II(BaseEstimator, TransformerMixin):
+class SelectFromLinearSVC(BaseEstimator, TransformerMixin):
 
     def init(self, **kwargs):
         self.selector = None
@@ -109,55 +109,6 @@ class SelectFromLinearSVC_II(BaseEstimator, TransformerMixin):
             return X_new
         else:
             return X
-
-        
-        
-class SelectFromLinearSVC(BaseEstimator, TransformerMixin):
-
-    def __init__(self, **kwargs):
-        dir = os.path.join(os.environ['NHL_MODEL_DIR'], 'FeaturesSelector')
-        self.pkl_dir = dir
-        self.selected_features = None
-
-    def fit(self, X, y=None):
-
-        filename = os.path.join(self.pkl_dir, 'linearSVC.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-            # feature_names = np.array(X.columns)
-            # self.selected_features = feature_names[selector.get_support()]
-            
-            return selector
-
-        else:
-            selector = SelectFromModel(LinearSVC(
-                C=0.01, 
-                penalty="l1", 
-                dual=False,
-                random_state=RANDOM_SEED))
-            # selector.fit(X, y)
-            # feature_names = np.array(X.columns)
-            # self.selected_features = feature_names[selector.get_support()]
-
-            os.makedirs(self.pkl_dir, exist_ok=True)
-            with open(os.path.join(self.pkl_dir, 'linearSVC.pkl'), 'wb') as file:
-                pickle.dump(selector, file)
-
-        return self
-
-
-    def transform(self, X, y=None):
-        
-        filename = os.path.join(self.pkl_dir, 'linearSVC.pkl')
-        if os.path.exists(filename):
-            with open(filename, 'rb') as file:
-                selector = pickle.load(file)
-        
-            # return pd.DataFrame(selector.transform(X), columns=self.selected_features), y
-            return selector.transform(X), y
-        else:
-            return X, y
 
         
 class SelectFromPCA():
