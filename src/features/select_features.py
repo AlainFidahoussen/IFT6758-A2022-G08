@@ -206,23 +206,24 @@ class SelectFromKBest_chi2(BaseEstimator, TransformerMixin):
         
         categorical_columns = [c for c in X.columns if c not in numerical_columns]
 
-        X_cat =  X[categorical_columns]
+        X_cat, X_num =  X[categorical_columns], X[numerical_columns].to_numpy()
         
-        return X_cat
+        return X_cat, X_num
 
     def fit(self, X, y=None):
         
-        X_cat = self.separate_X(X)
+        X_cat, X_num = self.separate_X(X)
         self.selector = SelectKBest(score_func=chi2, k=self.k)
         self.selector.fit(X_cat, y)
         return self.selector
 
 
     def transform(self, X, y=None):
-        X_cat = self.separate_X(X)
+        X_cat, X_num = self.separate_X(X)
         if self.selector is not None: 
             X_new = self.selector.transform(X_cat)
-            return X_new,y
+            X_final = np.hstack((X_new, X_num))
+            return X_final,y
         else:
             return X,y
 
@@ -242,13 +243,13 @@ class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
         
         categorical_columns = [c for c in X.columns if c not in numerical_columns]
 
-        X_cat =  X[categorical_columns]
+        X_cat, X_num =  X[categorical_columns], X[numerical_columns].to_numpy()
         
-        return X_cat
+        return X_cat, X_num
 
     def fit(self, X, y=None):
         
-        X_cat = self.separate_X(X)
+        X_cat, X_num = self.separate_X(X)
         self.selector = SelectKBest(score_func=mutual_info_classif, k=self.k)
         self.selector.fit(X_cat, y)
 
@@ -256,10 +257,11 @@ class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
 
 
     def transform(self, X, y=None):
-        X_cat = self.separate_X(X)
+        X_cat, X_num = self.separate_X(X)
         if self.selector is not None: 
             X_new = self.selector.transform(X_cat)
-            return X_new,y
+            X_final = np.hstack((X_new, X_num))
+            return X_final,y
         else:
             return X,y
         
@@ -276,14 +278,16 @@ class SelectFromAnova(BaseEstimator, TransformerMixin):
         'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
         'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
         'Last event distance', 'Last event angle']
-
-        X_num =  X[numerical_columns]
         
-        return X_num
+        categorical_columns = [c for c in X.columns if c not in numerical_columns]
+
+        X_num, X_cat =  X[numerical_columns], X[categorical_columns].to_numpy()
+        
+        return X_num, X_cat
 
     def fit(self, X, y=None):
         
-        X_num = self.separate_X(X)
+        X_num, X_cat = self.separate_X(X)
         self.selector = SelectKBest(score_func=f_classif, k=self.k)
         self.selector.fit(X_num, y)
 
@@ -291,10 +295,11 @@ class SelectFromAnova(BaseEstimator, TransformerMixin):
 
 
     def transform(self, X, y=None):
-        X_num = self.separate_X(X)
+        X_num, X_cat = self.separate_X(X)
         if self.selector is not None: 
             X_new = self.selector.transform(X_num)
-            return X_new,y
+            X_final = np.hstack((X_new, X_cat))
+            return X_final,y
         else:
             return X,y
 
