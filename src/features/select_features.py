@@ -37,7 +37,7 @@ class SelectFromRandomForest(BaseEstimator, TransformerMixin):
 
         self.selector = SelectFromModel(RandomForestClassifier(
                 random_state=RANDOM_SEED, 
-                n_estimators = 100, 
+                n_estimators = 50, 
                 class_weight='balanced'))
         self.selector.fit(X, y)
 
