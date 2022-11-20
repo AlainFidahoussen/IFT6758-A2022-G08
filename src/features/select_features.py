@@ -84,7 +84,6 @@ class SelectFromTree_RecursiveElimination(BaseEstimator, TransformerMixin):
         else:
             return X
 
-
         
 class SelectFromLinearSVC(BaseEstimator, TransformerMixin):
 
@@ -127,6 +126,7 @@ class SelectFromPCA():
            'Last event distance', 'Last event angle']
 
         X_cont, X_other = X[continuous_col], X.drop(continuous_col, axis=1)
+        X_other.reset_index(drop=True, inplace=True)
         
         X_cont_st = StandardScaler().fit_transform(X_cont)
         
