@@ -148,8 +148,8 @@ def RandomForestHyperParameters(project_name: str):
     X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
     scaler = StandardScaler()
 
-    # Found manually. The one-hot puts the categorical columns.
-    # So the numerical columns are the last 15 ones
+    # Found manually. The one-hot puts the categorical columns at the beginnning
+    # So the numerical columns becomes the last 15 ones
     numerical_idx = list(range(22, 37))
 
     for experiment in opt.get_experiments():
