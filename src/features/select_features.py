@@ -32,6 +32,7 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.decomposition import PCA
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 
 class SelectFromRandomForest(BaseEstimator, TransformerMixin):
@@ -207,9 +208,14 @@ class SelectFromKBest_chi2(BaseEstimator, TransformerMixin):
         'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
         'Last event distance', 'Last event angle']
         
+        col_names = list(X.columns)
+        
+        X_st = MinMaxScaler().fit_transform(X)
+        X_st = pd.DataFrame(X_st, columns=col_names)
+        
         categorical_columns = [c for c in X.columns if c not in numerical_columns]
 
-        X_cat, X_num =  X[categorical_columns], X[numerical_columns].to_numpy()
+        X_cat, X_num =  X_st[categorical_columns], X_st[numerical_columns].to_numpy()
         
         return X_cat, X_num
 
@@ -246,7 +252,12 @@ class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
         
         categorical_columns = [c for c in X.columns if c not in numerical_columns]
 
-        X_cat, X_num =  X[categorical_columns], X[numerical_columns].to_numpy()
+        X_st = MinMaxScaler().fit_transform(X)
+        X_st = pd.DataFrame(X_st, columns=col_names)
+        
+        categorical_columns = [c for c in X.columns if c not in numerical_columns]
+
+        X_cat, X_num =  X_st[categorical_columns], X_st[numerical_columns].to_numpy()
         
         return X_cat, X_num
 
