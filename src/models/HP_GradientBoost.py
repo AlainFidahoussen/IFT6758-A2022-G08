@@ -130,7 +130,7 @@ def GradientBoostHyperParameters(project_name: str):
         "spec": spec, 
         "parameters": model_params,
         "name": "Bayes Optimization", 
-        "trials": 3
+        "trials": 5
     }
 
     # initializing the comet ml optimizer
