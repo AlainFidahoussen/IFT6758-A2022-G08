@@ -32,7 +32,8 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.decomposition import PCA
 
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import MinMaxScaler
+
 
 class SelectFromRandomForest(BaseEstimator, TransformerMixin):
 
@@ -147,17 +148,19 @@ class SelectFromPCA():
            'Goalie Goal Ratio Last Season', 'Elapsed time since Power Play',
            'Last event elapsed time', 'Last event st_X', 'Last event st_Y',
            'Last event distance', 'Last event angle']
-
-        X_cont, X_other = X[continuous_col], X.drop(continuous_col, axis=1)
-        X_other.reset_index(drop=True, inplace=True)
         
-        X_cont_st = StandardScaler().fit_transform(X_cont)
+        col_names = list(X.columns)
         
-        return X_cont_st, X_other
+        X_st = StandardScaler().fit_transform(X)
+        X_st = pd.DataFrame(X_st, columns=col_names)
+        
+        X_cont_st, X_other_st = X_st[continuous_col], X_st.drop(continuous_col, axis=1)
+        
+        return X_cont_st, X_other_st
         
     def fit(self, X, y=None):
         
-        X_cont_st, X_other = self.separate_X(X)
+        X_cont_st, X_other_st = self.separate_X(X)
         
         self.selector = PCA(n_components=self.n_components)
         self.selector.fit(X_cont_st)  
@@ -168,26 +171,27 @@ class SelectFromPCA():
     def transform(self, X, y=None):
         if self.selector is not None: 
             
-            X_cont_st, X_other = self.separate_X(X)
+            X_cont_st, X_other_st = self.separate_X(X)
     
             X_PCA = self.selector.transform(X_cont_st)
             
-            principalDf = pd.DataFrame(data = X_PCA, columns = [f'PC{i}' for i in range(1, self.n_components+1)])
-            X_final = pd.concat([principalDf, X_other], axis = 1)
+            # principalDf = pd.DataFrame(data = X_PCA, columns = [f'PC{i}' for i in range(1, self.n_components+1)])
+            # X_final = pd.concat([principalDf, X_other], axis = 1)
+            X_final = np.hstack((X_PCA, X_other_st))
             
             cev = np.cumsum(self.selector.explained_variance_ratio_)
             cev = np.insert(cev, 0, 0)
             print(f'Cumulative explained variance with {self.n_components} components: {cev[-1]}')
 
-            plt.figure(figsize=(15,10))
-            plt.ylim(0.0,1.1)
-            plt.plot(cev, linewidth=3)
-            plt.xlabel('number of components', fontsize=21)
-            plt.ylabel('cumulative explained variance', fontsize=21)
-            plt.title('Scree Plot using PCA', fontsize=24)
-            plt.rc('font', size=16)
-            plt.grid()
-            plt.show()
+            # plt.figure(figsize=(15,10))
+            # plt.ylim(0.0,1.1)
+            # plt.plot(cev, linewidth=3)
+            # plt.xlabel('number of components', fontsize=21)
+            # plt.ylabel('cumulative explained variance', fontsize=21)
+            # plt.title('Scree Plot using PCA', fontsize=24)
+            # plt.rc('font', size=16)
+            # plt.grid()
+            # plt.show()
         
             return X_final, y
         else:
@@ -228,9 +232,14 @@ class SelectFromKBest_chi2(BaseEstimator, TransformerMixin):
         'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
         'Last event distance', 'Last event angle']
         
+        col_names = list(X.columns)
+        
+        X_st = MinMaxScaler().fit_transform(X)
+        X_st = pd.DataFrame(X_st, columns=col_names)
+        
         categorical_columns = [c for c in X.columns if c not in numerical_columns]
 
-        X_cat, X_num =  X[categorical_columns], X[numerical_columns].to_numpy()
+        X_cat, X_num =  X_st[categorical_columns], X_st[numerical_columns].to_numpy()
         
         return X_cat, X_num
 
@@ -267,7 +276,12 @@ class SelectFromKBest_MI(BaseEstimator, TransformerMixin):
         
         categorical_columns = [c for c in X.columns if c not in numerical_columns]
 
-        X_cat, X_num =  X[categorical_columns], X[numerical_columns].to_numpy()
+        X_st = MinMaxScaler().fit_transform(X)
+        X_st = pd.DataFrame(X_st, columns=col_names)
+        
+        categorical_columns = [c for c in X.columns if c not in numerical_columns]
+
+        X_cat, X_num =  X_st[categorical_columns], X_st[numerical_columns].to_numpy()
         
         return X_cat, X_num
 
