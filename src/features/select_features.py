@@ -37,14 +37,15 @@ from sklearn.preprocessing import MinMaxScaler
 
 class SelectFromRandomForest(BaseEstimator, TransformerMixin):
 
-    def __init__(self, **kwargs):
+    def __init__(self, n_estimators=50, **kwargs):
         self.selector = None
+        self.n_estimators = n_estimators
 
     def fit(self, X, y=None):
 
         self.selector = SelectFromModel(RandomForestClassifier(
                 random_state=RANDOM_SEED, 
-                n_estimators = 50, 
+                n_estimators = self.n_estimators, 
                 class_weight='balanced'))
         self.selector.fit(X, y)
 
