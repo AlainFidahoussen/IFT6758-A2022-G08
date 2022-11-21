@@ -125,7 +125,7 @@ def RandomForestHyperParameters(project_name: str):
 
     # setting the spec for bayes algorithm
     spec = {
-        "objective": "minimize",
+        "objective": "maximize",
         "metric": "cv_mean_test_f1_macro",
         "seed": RANDOM_SEED
     }
@@ -178,18 +178,12 @@ def RandomForestHyperParameters(project_name: str):
         sampling_strategy   = experiment.get_parameter("sampling_strategy")
         variance_threshold  = experiment.get_parameter("variance_threshold")
 
+        selector = VarianceThreshold(variance_threshold)
         clf_forest = BalancedRandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
             sampling_strategy=sampling_strategy,
             random_state=RANDOM_SEED)
-
-        # pca = PCA(n_components=pca_components)
-        # preprocessor = make_column_transformer(
-        #     (pca, numerical_idx )
-        # )
-
-        selector = VarianceThreshold(variance_threshold)
 
         # Pipeline
         steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_forest", clf_forest)]

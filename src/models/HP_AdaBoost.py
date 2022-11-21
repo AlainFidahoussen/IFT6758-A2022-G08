@@ -10,16 +10,21 @@ import os
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import RobustScaler
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.decomposition import PCA
 
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.feature_selection import SelectKBest, chi2
 
 from imblearn.pipeline import Pipeline
 import src.features.detect_outliers as OutliersManager
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.compose import make_column_transformer
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import StratifiedKFold
 
 from comet_ml import Experiment
 from comet_ml import Optimizer
@@ -72,7 +77,25 @@ def GetData():
     return X_train, X_valid, y_train, y_valid
 
 
+def run_search(experiment, model, X, y, cv):
+  # fit the model on the whole dataset
+  results = cross_validate(
+      model, X, y, cv=cv, 
+      scoring=[
+          "f1_macro", 
+          "precision_macro",  
+          "recall_macro"
+      ], return_train_score=True)
 
+  for k in results.keys():
+    scores = results[k]
+    for idx, score in enumerate(scores):
+      experiment.log_metrics({f"cv_{k}": score}, step=idx)
+
+    experiment.log_metrics({f"cv_mean_{k}": np.mean(scores)})
+    experiment.log_metrics({f"cv_std_{k}": np.std(scores)})
+
+    experiment.log_parameter("random_state", RANDOM_SEED)
 def AdaBoostHyperParameters(project_name: str):
 
     numerical_columns = [
@@ -97,11 +120,10 @@ def AdaBoostHyperParameters(project_name: str):
         ('enc', OneHotEncoder(sparse = False), list(range(len(nominal_columns)))),
     ], remainder ='passthrough')
 
-
     # setting the spec for bayes algorithm
     spec = {
-        "objective": "minimize",
-        "metric": "loss",
+        "objective": "maximize",
+        "metric": "cv_mean_test_f1_macro",
         "seed": RANDOM_SEED
     }
 
@@ -116,6 +138,14 @@ def AdaBoostHyperParameters(project_name: str):
         "learning_rate": {
             "type": "discrete",
             "values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        },
+        "selector_k" : {
+            "type": "discrete",
+            "values": [8, 9, 10, 11, 12, 13, 14, 15]
+        },
+        "over_sample" : {
+            "type": "discrete",
+            "values": [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
         }
     }
 
@@ -128,6 +158,7 @@ def AdaBoostHyperParameters(project_name: str):
         "trials": 5
     }
 
+    cv = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED, shuffle=True)
 
     # initializing the comet ml optimizer
     opt = Optimizer(
@@ -137,11 +168,19 @@ def AdaBoostHyperParameters(project_name: str):
         workspace="ift6758-a22-g08")
 
     X_train, X_valid, y_train, y_valid = GetData()
+    scaler = StandardScaler()
 
+   
     for experiment in opt.get_experiments():
 
-        n_estimators      = experiment.get_parameter("n_estimators")
-        learning_rate     = experiment.get_parameter("learning_rate")
+        n_estimators   = experiment.get_parameter("n_estimators")
+        learning_rate  = experiment.get_parameter("learning_rate")
+        over_sample    = experiment.get_parameter("over_sample")
+        selector_k     = experiment.get_parameter("selector_k")
+
+        selector = SelectKBest(k=selector_k)
+
+        over = RandomOverSampler(sampling_strategy=over_sample)
 
         clf_adaboost = AdaBoostClassifier(
             n_estimators=n_estimators,
@@ -149,8 +188,10 @@ def AdaBoostHyperParameters(project_name: str):
             random_state=RANDOM_SEED)
 
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_adaboost", clf_adaboost)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("over", over), ("clf_adaboost", clf_adaboost)]
         pipeline = Pipeline(steps=steps)
+
+        run_search(experiment, pipeline, X_train, y_train, cv)
 
         pipeline.fit(X_train, y_train)
 

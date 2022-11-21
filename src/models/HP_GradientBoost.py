@@ -20,6 +20,8 @@ import src.features.detect_outliers as OutliersManager
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import StratifiedKFold
 
 from comet_ml import Experiment
 from comet_ml import Optimizer
@@ -72,7 +74,25 @@ def GetData():
     return X_train, X_valid, y_train, y_valid
 
 
+def run_search(experiment, model, X, y, cv):
+  # fit the model on the whole dataset
+  results = cross_validate(
+      model, X, y, cv=cv, 
+      scoring=[
+          "f1_macro", 
+          "precision_macro",  
+          "recall_macro"
+      ], return_train_score=True)
 
+  for k in results.keys():
+    scores = results[k]
+    for idx, score in enumerate(scores):
+      experiment.log_metrics({f"cv_{k}": score}, step=idx)
+
+    experiment.log_metrics({f"cv_mean_{k}": np.mean(scores)})
+    experiment.log_metrics({f"cv_std_{k}": np.std(scores)})
+
+    experiment.log_parameter("random_state", RANDOM_SEED)
 def GradientBoostHyperParameters(project_name: str):
 
     numerical_columns = [
@@ -100,8 +120,8 @@ def GradientBoostHyperParameters(project_name: str):
 
     # setting the spec for bayes algorithm
     spec = {
-        "objective": "minimize",
-        "metric": "loss",
+        "objective": "maximize",
+        "metric": "cv_mean_test_f1_macro",
         "seed": RANDOM_SEED
     }
 
@@ -120,8 +140,12 @@ def GradientBoostHyperParameters(project_name: str):
             "values": [2, 5, 8, 12, 15, 20]},
         "learning_rate": {
             "type": "discrete",
-            "values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-        }
+            "values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
+        "selector_n_estimators": {
+            "type": "integer",
+            "scaling_type": "uniform",
+            "min": 50,
+            "max": 200}
     }
 
     # defining the configuration dictionary
@@ -132,6 +156,8 @@ def GradientBoostHyperParameters(project_name: str):
         "name": "Bayes Optimization", 
         "trials": 5
     }
+
+    cv = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED, shuffle=True)
 
     # initializing the comet ml optimizer
     opt = Optimizer(
@@ -144,10 +170,11 @@ def GradientBoostHyperParameters(project_name: str):
 
     for experiment in opt.get_experiments():
 
-        n_estimators  = experiment.get_parameter("n_estimators")
-        max_features  = experiment.get_parameter("max_features")
-        max_depth     = experiment.get_parameter("max_depth")
-        learning_rate = experiment.get_parameter("learning_rate")
+        n_estimators          = experiment.get_parameter("n_estimators")
+        max_features          = experiment.get_parameter("max_features")
+        max_depth             = experiment.get_parameter("max_depth")
+        learning_rate         = experiment.get_parameter("learning_rate")
+        selector_n_estimators = experiment.get_parameter("selector_n_estimators")
 
         clf_gradientboost = GradientBoostingClassifier(
             n_estimators=n_estimators,
@@ -155,28 +182,19 @@ def GradientBoostHyperParameters(project_name: str):
             max_depth=max_depth,
             learning_rate=learning_rate,
             random_state=RANDOM_SEED)
+        
+        selector = FeaturesSelector.SelectFromRandomForest(selector_n_estimators)
 
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_gradientboost", clf_gradientboost)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('selector', selector), ("clf_gradientboost", clf_gradientboost)]
         pipeline = Pipeline(steps=steps)
+
+        run_search(experiment, pipeline, X_train, y_train, cv)
 
         pipeline.fit(X_train, y_train)
 
         y_pred = pipeline.predict(X_valid)
         metrics = evaluate(y_valid, y_pred)
 
-        with experiment.train():
-            y_pred = pipeline.predict(X_train)
-            metrics = evaluate(y_train, y_pred)
-            experiment.log_metrics(metrics)
-            experiment.log_confusion_matrix(y_train.to_numpy().astype(int), y_pred.astype(int))
-
-        with experiment.validate():
-            y_pred = pipeline.predict(X_valid)
-            metrics = evaluate(y_valid, y_pred)
-            experiment.log_metrics(metrics)
-            experiment.log_confusion_matrix(y_valid.to_numpy().astype(int), y_pred.astype(int))
-        
-        experiment.log_parameter("random_state", RANDOM_SEED)
         experiment.end()
   

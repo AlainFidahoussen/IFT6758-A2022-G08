@@ -18,6 +18,10 @@ import src.features.detect_outliers as OutliersManager
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.compose import make_column_transformer
+from sklearn.decomposition import PCA
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import StratifiedKFold
 
 from comet_ml import Experiment
 from comet_ml import Optimizer
@@ -70,7 +74,25 @@ def GetData():
     return X_train, X_valid, y_train, y_valid
 
 
+def run_search(experiment, model, X, y, cv):
+  # fit the model on the whole dataset
+  results = cross_validate(
+      model, X, y, cv=cv, 
+      scoring=[
+          "f1_macro", 
+          "precision_macro",  
+          "recall_macro"
+      ], return_train_score=True)
 
+  for k in results.keys():
+    scores = results[k]
+    for idx, score in enumerate(scores):
+      experiment.log_metrics({f"cv_{k}": score}, step=idx)
+
+    experiment.log_metrics({f"cv_mean_{k}": np.mean(scores)})
+    experiment.log_metrics({f"cv_std_{k}": np.std(scores)})
+
+    experiment.log_parameter("random_state", RANDOM_SEED)
 def EasyEnsembleParameters(project_name: str):
 
     numerical_columns = [
@@ -97,8 +119,8 @@ def EasyEnsembleParameters(project_name: str):
 
     # setting the spec for bayes algorithm
     spec = {
-        "objective": "minimize",
-        "metric": "loss",
+        "objective": "maximize",
+        "metric": "cv_mean_test_f1_macro",
         "seed": RANDOM_SEED
     }
 
@@ -113,7 +135,11 @@ def EasyEnsembleParameters(project_name: str):
         "sampling_strategy": {
             "type": "discrete",
             "values": [0.5, 0.6, 0.7, 0.8, 0.9]
-        }
+        },
+        "pca_components" : {
+            "type": "discrete",
+            "values": [7, 8, 9, 10, 11, 12, 13, 14, 15]
+        },
     }
 
     # defining the configuration dictionary
@@ -125,6 +151,7 @@ def EasyEnsembleParameters(project_name: str):
         "trials": 5
     }
 
+    cv = StratifiedKFold(n_splits=5, random_state=RANDOM_SEED, shuffle=True)
 
     # initializing the comet ml optimizer
     opt = Optimizer(
@@ -135,38 +162,38 @@ def EasyEnsembleParameters(project_name: str):
 
     X_train, X_valid, y_train, y_valid = GetData()
 
+    scaler = StandardScaler()
+
+    # Found manually. The one-hot puts the categorical columns at the beginnning
+    # So the numerical columns becomes the last 15 ones
+    numerical_idx = list(range(22, 37))
+
     for experiment in opt.get_experiments():
 
         n_estimators      = experiment.get_parameter("n_estimators")
         sampling_strategy = experiment.get_parameter("sampling_strategy")
-
+        pca_components    = experiment.get_parameter("pca_components")
 
         clf_easy_ensemble = EasyEnsembleClassifier(
             n_estimators=n_estimators,
             sampling_strategy=sampling_strategy,
             random_state=RANDOM_SEED)
 
+        pca = PCA(n_components=pca_components)
+        preprocessor = make_column_transformer(
+            (pca, numerical_idx )
+        )
+
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_easy_ensemble", clf_easy_ensemble)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot), ('scaler', scaler), ('selector', preprocessor), ("clf_easy_ensemble", clf_easy_ensemble)]
         pipeline = Pipeline(steps=steps)
+
+        run_search(experiment, pipeline, X_train, y_train, cv)
 
         pipeline.fit(X_train, y_train)
 
         y_pred = pipeline.predict(X_valid)
         metrics = evaluate(y_valid, y_pred)
 
-        with experiment.train():
-            y_pred = pipeline.predict(X_train)
-            metrics = evaluate(y_train, y_pred)
-            experiment.log_metrics(metrics)
-            experiment.log_confusion_matrix(y_train.to_numpy().astype(int), y_pred.astype(int))
-
-        with experiment.validate():
-            y_pred = pipeline.predict(X_valid)
-            metrics = evaluate(y_valid, y_pred)
-            experiment.log_metrics(metrics)
-            experiment.log_confusion_matrix(y_valid.to_numpy().astype(int), y_pred.astype(int))
-        
-        experiment.log_parameter("random_state", RANDOM_SEED)
         experiment.end()
   
