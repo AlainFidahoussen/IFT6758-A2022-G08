@@ -19,6 +19,9 @@ import src.features.detect_outliers as OutliersManager
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.compose import make_column_transformer
+from sklearn.decomposition import PCA
 
 from comet_ml import Experiment
 from comet_ml import Optimizer
@@ -108,18 +111,18 @@ def RandomForestHyperParameters(project_name: str):
         "n_estimators": {
             "type": "integer",
             "scaling_type": "uniform",
-            "min": 100,
+            "min": 50,
             "max": 300},
-        "criterion": {
-            "type": "categorical",
-            "values": ["gini", "entropy"]},
         "max_depth": {
             "type": "discrete",
             "values": [5, 10, 15, 20]},
         "sampling_strategy": {
             "type": "discrete",
-            "values": [0.5, 0.6, 0.7, 0.8, 0.9]
-        }
+            "values": [0.5, 0.6, 0.7, 0.8, 0.9] },
+        "pca_components" : {
+            "type": "discrete",
+            "values": [7, 8, 9, 10, 11, 12, 13, 14, 15]
+        },
     }
 
     # defining the configuration dictionary
@@ -141,22 +144,34 @@ def RandomForestHyperParameters(project_name: str):
 
     X_train, X_valid, y_train, y_valid = GetData()
 
+    X_train, y_train = OutliersManager.remove_outliers(X_train, y_train)
+    X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
+    scaler = StandardScaler()
+
+    # Found manually. The one-hot puts the categorical columns.
+    # So the numerical columns are the last 15 ones
+    numerical_idx = list(range(22, 37))
+
     for experiment in opt.get_experiments():
 
         n_estimators      = experiment.get_parameter("n_estimators")
-        criterion         = experiment.get_parameter("criterion")
         max_depth         = experiment.get_parameter("max_depth")
         sampling_strategy = experiment.get_parameter("sampling_strategy")
+        pca_components    = experiment.get_parameter("pca_components")
 
         clf_forest = BalancedRandomForestClassifier(
             n_estimators=n_estimators,
-            criterion=criterion,
             max_depth=max_depth,
             sampling_strategy=sampling_strategy,
             random_state=RANDOM_SEED)
 
+        pca = PCA(n_components=pca_components)
+        preprocessor = make_column_transformer(
+            (pca, numerical_idx )
+        )
+
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_forest", clf_forest)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('pca', preprocessor), ("clf_forest", clf_forest)]
         pipeline = Pipeline(steps=steps)
 
         pipeline.fit(X_train, y_train)
