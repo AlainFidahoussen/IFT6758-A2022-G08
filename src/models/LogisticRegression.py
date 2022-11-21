@@ -12,6 +12,8 @@ load_dotenv();
 
 # import comet_ml at the top of your file
 from comet_ml import Experiment
+from comet_ml import API
+
 import numpy as np
 import seaborn as sns
 
@@ -24,6 +26,8 @@ import src.visualization.visualize as VizManager
 import src.features.build_features as FeaturesManager
 
 import pickle
+
+RANDOM_SEED = 42
 
 
 def start_experiment():
@@ -43,6 +47,83 @@ def evaluate(y_true, y_pred):
         'macro f1': f1_score(y_true, y_pred, average='macro'),
         'accuracy': accuracy_score(y_true, y_pred),
     }
+
+
+def DoTraining():
+    seasons_year = [2015, 2016, 2017, 2018]
+    season_type = "Regular"
+    features_data = FeaturesManager.build_features(seasons_year, season_type)
+
+    # We take the absolute value, for symmetry reasons
+    features_data['Shot angle'] = features_data['Shot angle'].abs()
+
+    X = features_data[['Shot distance', 'Shot angle']]
+    y = features_data['Is Goal']
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
+    
+    clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+    clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+    clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+
+
+def DoTesting(season_year, season_type):
+
+    features_data = FeaturesManager.build_features([season_year], season_type)
+
+    # We take the absolute value, for symmetry reasons
+    features_data['Shot angle'] = features_data['Shot angle'].abs()
+
+    y_test = features_data['Is Goal']
+
+    api = API()
+
+    workspace_name = "ift6758-a22-g08"
+
+    # Download and evaluate the Logistic Regresion on Distance
+    api.download_registry_model(workspace_name, "logisticregression-distance", "1.0.0", output_path=os.environ["NHL_MODEL_DIR"], expand=True)
+    pkl_filename = os.path.join(os.environ["NHL_MODEL_DIR"], "LogisticRegression_distance.pkl")
+    with open(pkl_filename, 'rb') as file:
+        clf = pickle.load(file)
+
+    X_test = features_data[['Shot distance']]
+    y_pred = clf.predict(X_test)
+    metrics = evaluate(y_test, y_pred)
+    
+    print('--------------------------------')
+    print('Logistic Regression - Distance')
+    print(metrics)
+
+
+    # Download and evaluate the Logistic Regresion on Angle
+    api.download_registry_model(workspace_name, "logisticregression-angle", "1.0.0", output_path=os.environ["NHL_MODEL_DIR"], expand=True)
+    pkl_filename = os.path.join(os.environ["NHL_MODEL_DIR"], "LogisticRegression_angle.pkl")
+    with open(pkl_filename, 'rb') as file:
+        clf = pickle.load(file)
+
+    X_test = features_data[['Shot angle']]
+    y_pred = clf.predict(X_test)
+    metrics = evaluate(y_test, y_pred)
+    
+    print('--------------------------------')
+    print('Logistic Regression - Angle')
+    print(metrics)
+
+
+    # Download and evaluate the Logistic Regresion on Distance and Angle
+    api.download_registry_model(workspace_name, "logisticregression-distance-angle", "1.0.0", output_path=os.environ["NHL_MODEL_DIR"], expand=True)
+    pkl_filename = os.path.join(os.environ["NHL_MODEL_DIR"], "LogisticRegression_distance_angle.pkl")
+    with open(pkl_filename, 'rb') as file:
+        clf = pickle.load(file)
+
+    print(clf)
+    X_test = features_data[['Shot distance', 'Shot angle']]
+    y_pred = clf.predict(X_test)
+    metrics = evaluate(y_test, y_pred)
+    
+    print('--------------------------------')
+    print('Logistic Regression - Distance/Angle')
+    print(metrics)
 
 
 def clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
@@ -99,7 +180,7 @@ def clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     pkl_filename = './models/LogisticRegression_angle.pkl'
     # pkl_filename = 'LogisticRegression_angle.pkl'
     with open(pkl_filename, 'wb') as file:
-        pickle.dump(clf_distance, file)
+        pickle.dump(clf_angle, file)
     experiment.log_model("LogisticRegression_angle", pkl_filename)
     experiment.register_model("LogisticRegression_angle")
 
@@ -135,7 +216,7 @@ def clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     pkl_filename = './models/LogisticRegression_distance_angle.pkl'
     # pkl_filename = 'LogisticRegression_distance_angle.pkl'
     with open(pkl_filename, 'wb') as file:
-        pickle.dump(clf_distance, file)
+        pickle.dump(clf_distance_angle, file)
     experiment.log_model("LogisticRegression_distance_angle", pkl_filename)
     experiment.register_model("LogisticRegression_distance_angle")
 
@@ -155,26 +236,10 @@ def clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     experiment.end()
 
     
-def main():
-    RANDOM_SEED = 42
-    seasons_year = [2015, 2016, 2017, 2018]
-    season_type = "Regular"
-    features_data = FeaturesManager.build_features(seasons_year, season_type)
-
-    # We take the absolute value, for symmetry reasons
-    features_data['Shot angle'] = features_data['Shot angle'].abs()
-
-    X = features_data[['Shot distance', 'Shot angle']]
-    y = features_data['Is Goal']
-
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
-    
-    clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
-    clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
-    clf_distance_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
-    
+   
 
 if __name__ == "__main__":
-    main()
-
+    # DoTraining()
+    DoTesting(2019, "Regular")
+    DoTesting(2019, "Playoffs")
 

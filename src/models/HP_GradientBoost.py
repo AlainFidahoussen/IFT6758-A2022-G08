@@ -73,7 +73,7 @@ def GetData():
 
 
 
-def GradientBoostHyperParameters():
+def GradientBoostHyperParameters(project_name: str):
 
     numerical_columns = [
         'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
@@ -96,12 +96,6 @@ def GradientBoostHyperParameters():
     one_hot = ColumnTransformer(transformers = [
         ('enc', OneHotEncoder(sparse = False), list(range(len(nominal_columns)))),
     ], remainder ='passthrough')
-
-    # scaler
-    scaler = StandardScaler()
-
-    # features selectpr
-    selector = FeaturesSelector.SelectFromRandomForest()
 
 
     # setting the spec for bayes algorithm
@@ -143,7 +137,7 @@ def GradientBoostHyperParameters():
     opt = Optimizer(
         api_key=os.environ.get('COMET_API_KEY'),
         config=config_dict,
-        project_name="Hyperparameters-GradientBoost",
+        project_name=project_name,
         workspace="ift6758-a22-g08")
 
     X_train, X_valid, y_train, y_valid = GetData()
@@ -162,10 +156,8 @@ def GradientBoostHyperParameters():
             learning_rate=learning_rate,
             random_state=RANDOM_SEED)
 
-        scaler = StandardScaler()
-
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_gradientboost", clf_gradientboost)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_gradientboost", clf_gradientboost)]
         pipeline = Pipeline(steps=steps)
 
         pipeline.fit(X_train, y_train)

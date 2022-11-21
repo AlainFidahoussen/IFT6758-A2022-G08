@@ -32,7 +32,7 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.decomposition import PCA
 
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.linear_model import LogisticRegression
 
 class SelectFromRandomForest(BaseEstimator, TransformerMixin):
 
@@ -45,6 +45,29 @@ class SelectFromRandomForest(BaseEstimator, TransformerMixin):
                 random_state=RANDOM_SEED, 
                 n_estimators = 50, 
                 class_weight='balanced'))
+        self.selector.fit(X, y)
+
+        return self.selector
+
+    def transform(self, X, y=None):
+        if self.selector is not None: 
+            X_new = self.selector.transform(X)
+            return X_new
+        else:
+            return X
+
+
+
+class SelectFromLogisticRegression(BaseEstimator, TransformerMixin):
+
+    def __init__(self, **kwargs):
+        self.selector = None
+
+    def fit(self, X, y=None):
+
+        self.selector = SelectFromModel(LogisticRegression(
+                random_state=RANDOM_SEED, 
+                max_iter=250))
         self.selector.fit(X, y)
 
         return self.selector
@@ -169,6 +192,7 @@ class SelectFromPCA():
             return X_final, y
         else:
             return X, y
+            
 
 class SelectFromVarianceThreshold(BaseEstimator, TransformerMixin):
 

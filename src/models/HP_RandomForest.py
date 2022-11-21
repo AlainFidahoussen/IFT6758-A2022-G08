@@ -96,12 +96,6 @@ def RandomForestHyperParameters(project_name: str):
         ('enc', OneHotEncoder(sparse = False), list(range(len(nominal_columns)))),
     ], remainder ='passthrough')
 
-    # scaler
-    scaler = StandardScaler()
-
-    # features selectpr
-    selector = FeaturesSelector.SelectFromRandomForest()
-
     # setting the spec for bayes algorithm
     spec = {
         "objective": "minimize",
@@ -134,7 +128,7 @@ def RandomForestHyperParameters(project_name: str):
         "spec": spec, 
         "parameters": model_params,
         "name": "Bayes Optimization", 
-        "trials": 3
+        "trials": 5
     }
 
 
@@ -161,10 +155,8 @@ def RandomForestHyperParameters(project_name: str):
             sampling_strategy=sampling_strategy,
             random_state=RANDOM_SEED)
 
-        scaler = StandardScaler()
-
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_forest", clf_forest)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_forest", clf_forest)]
         pipeline = Pipeline(steps=steps)
 
         pipeline.fit(X_train, y_train)

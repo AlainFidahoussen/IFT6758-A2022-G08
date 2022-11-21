@@ -73,7 +73,7 @@ def GetData():
 
 
 
-def AdaBoostHyperParameters():
+def AdaBoostHyperParameters(project_name: str):
 
     numerical_columns = [
         'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
@@ -97,11 +97,6 @@ def AdaBoostHyperParameters():
         ('enc', OneHotEncoder(sparse = False), list(range(len(nominal_columns)))),
     ], remainder ='passthrough')
 
-    # scaler
-    scaler = StandardScaler()
-
-    # features selectpr
-    selector = FeaturesSelector.SelectFromRandomForest()
 
     # setting the spec for bayes algorithm
     spec = {
@@ -138,7 +133,7 @@ def AdaBoostHyperParameters():
     opt = Optimizer(
         api_key=os.environ.get('COMET_API_KEY'),
         config=config_dict,
-        project_name="Hyperparameters-Adaboost",
+        project_name=project_name,
         workspace="ift6758-a22-g08")
 
     X_train, X_valid, y_train, y_valid = GetData()
@@ -153,10 +148,8 @@ def AdaBoostHyperParameters():
             learning_rate=learning_rate,
             random_state=RANDOM_SEED)
 
-        scaler = StandardScaler()
-
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_adaboost", clf_adaboost)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_adaboost", clf_adaboost)]
         pipeline = Pipeline(steps=steps)
 
         pipeline.fit(X_train, y_train)
