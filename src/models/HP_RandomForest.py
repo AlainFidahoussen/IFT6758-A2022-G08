@@ -136,7 +136,7 @@ def RandomForestHyperParameters(project_name: str):
             "type": "integer",
             "scaling_type": "uniform",
             "min": 50,
-            "max": 300},
+            "max": 200},
         "max_depth": {
             "type": "discrete",
             "values": [5, 10, 15, 20]},
