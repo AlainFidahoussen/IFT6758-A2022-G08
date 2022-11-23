@@ -191,10 +191,5 @@ def EasyEnsembleParameters(project_name: str):
 
         run_search(experiment, pipeline, X_train, y_train, cv)
 
-        pipeline.fit(X_train, y_train)
-
-        y_pred = pipeline.predict(X_valid)
-        metrics = evaluate(y_valid, y_pred)
-
         experiment.end()
   
