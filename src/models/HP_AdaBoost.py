@@ -84,7 +84,8 @@ def run_search(experiment, model, X, y, cv):
       scoring=[
           "f1_macro", 
           "precision_macro",  
-          "recall_macro"
+          "recall_macro",
+          "roc_auc"
       ], return_train_score=True)
 
   for k in results.keys():

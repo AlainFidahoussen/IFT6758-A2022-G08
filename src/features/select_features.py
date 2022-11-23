@@ -21,6 +21,7 @@ from sklearn.preprocessing import OrdinalEncoder
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.feature_selection import f_classif
 from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.linear_model import LogisticRegression
 
 from sklearn.base import BaseEstimator, TransformerMixin
 

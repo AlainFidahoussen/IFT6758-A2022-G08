@@ -8,6 +8,7 @@ import src.features.detect_outliers as OutliersManager
 
 import numpy as np
 import os
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -71,6 +72,19 @@ def GetData():
     X_train, y_train = OutliersManager.remove_outliers(X_train, y_train)
     X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
 
+    X_train['Rebound'] = ((X_train['Rebound'] == 1) & (X_train['Last event elapsed time'] < 4)).astype(int)
+    X_valid['Rebound'] = ((X_valid['Rebound'] == 1) & (X_valid['Last event elapsed time'] < 4)).astype(int)
+
+    distance_bins = np.linspace(0,185,10)
+    angle_bins = np.linspace(-185,185,10)
+    X_train['Angle Bins'] = pd.cut(X_train['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
+    X_train['Distance Bins'] = pd.cut(X_train['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+
+    X_valid['Angle Bins'] = pd.cut(X_valid['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
+    X_valid['Distance Bins'] = pd.cut(X_valid['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+
+    X_train.drop(labels=['Shot angle', 'Shot distance'], axis=1)
+
     return X_train, X_valid, y_train, y_valid
 
 
@@ -81,7 +95,8 @@ def run_search(experiment, model, X, y, cv):
       scoring=[
           "f1_macro", 
           "precision_macro",  
-          "recall_macro"
+          "recall_macro",
+          "roc_auc"
       ], return_train_score=True)
 
   for k in results.keys():
@@ -93,16 +108,27 @@ def run_search(experiment, model, X, y, cv):
     experiment.log_metrics({f"cv_std_{k}": np.std(scores)})
 
     experiment.log_parameter("random_state", RANDOM_SEED)
+
 def GradientBoostHyperParameters(project_name: str):
 
+    # numerical_columns = [
+    #     'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+    #     'Speed From Previous Event', 'Change in Shot Angle', 
+    #     'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+    #     'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+    #     'Last event distance', 'Last event angle']
+
+    # nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
+    # ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+
     numerical_columns = [
-        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+        'Period seconds', 'st_X', 'st_Y', 
         'Speed From Previous Event', 'Change in Shot Angle', 
         'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
         'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
         'Last event distance', 'Last event angle']
 
-    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
+    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position', 'Angle Bins', 'Distance Bins']
     ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
 
 
@@ -131,7 +157,7 @@ def GradientBoostHyperParameters(project_name: str):
             "type": "integer",
             "scaling_type": "uniform",
             "min": 50,
-            "max": 200},
+            "max": 150},
         "max_features": {
             "type": "categorical",
             "values": ["sqrt", "log2"]},
@@ -140,12 +166,12 @@ def GradientBoostHyperParameters(project_name: str):
             "values": [2, 5, 8, 12, 15, 20]},
         "learning_rate": {
             "type": "discrete",
-            "values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
-        "selector_n_estimators": {
-            "type": "integer",
-            "scaling_type": "uniform",
-            "min": 50,
-            "max": 200}
+            "values": [0.2, 0.4, 0.6, 0.8]}
+        # "selector_n_estimators": {
+        #     "type": "integer",
+        #     "scaling_type": "uniform",
+        #     "min": 20,
+        #     "max": 100}
     }
 
     # defining the configuration dictionary
@@ -174,7 +200,7 @@ def GradientBoostHyperParameters(project_name: str):
         max_features          = experiment.get_parameter("max_features")
         max_depth             = experiment.get_parameter("max_depth")
         learning_rate         = experiment.get_parameter("learning_rate")
-        selector_n_estimators = experiment.get_parameter("selector_n_estimators")
+        # selector_n_estimators = experiment.get_parameter("selector_n_estimators")
 
         clf_gradientboost = GradientBoostingClassifier(
             n_estimators=n_estimators,
@@ -183,10 +209,10 @@ def GradientBoostHyperParameters(project_name: str):
             learning_rate=learning_rate,
             random_state=RANDOM_SEED)
         
-        selector = FeaturesSelector.SelectFromRandomForest(selector_n_estimators)
+        # selector = FeaturesSelector.SelectFromRandomForest(selector_n_estimators)
 
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('selector', selector), ("clf_gradientboost", clf_gradientboost)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_gradientboost", clf_gradientboost)]
         pipeline = Pipeline(steps=steps)
 
         run_search(experiment, pipeline, X_train, y_train, cv)

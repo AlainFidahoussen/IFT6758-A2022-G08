@@ -8,6 +8,7 @@ import src.features.detect_outliers as OutliersManager
 
 import numpy as np
 import os
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -75,6 +76,19 @@ def GetData():
     X_train, y_train = OutliersManager.remove_outliers(X_train, y_train)
     X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
 
+    X_train['Rebound'] = ((X_train['Rebound'] == 1) & (X_train['Last event elapsed time'] < 4)).astype(int)
+    X_valid['Rebound'] = ((X_valid['Rebound'] == 1) & (X_valid['Last event elapsed time'] < 4)).astype(int)
+
+    distance_bins = np.linspace(0,185,10)
+    angle_bins = np.linspace(-185,185,10)
+    X_train['Angle Bins'] = pd.cut(X_train['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
+    X_train['Distance Bins'] = pd.cut(X_train['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+
+    X_valid['Angle Bins'] = pd.cut(X_valid['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
+    X_valid['Distance Bins'] = pd.cut(X_valid['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+
+    X_train.drop(labels=['Shot angle', 'Shot distance'], axis=1)
+
     return X_train, X_valid, y_train, y_valid
 
 
@@ -85,7 +99,8 @@ def run_search(experiment, model, X, y, cv):
       scoring=[
           "f1_macro", 
           "precision_macro",  
-          "recall_macro"
+          "recall_macro",
+          "roc_auc"
       ], return_train_score=True)
 
   for k in results.keys():
@@ -101,16 +116,35 @@ def run_search(experiment, model, X, y, cv):
 
 def RandomForestHyperParameters(project_name: str):
 
+    # numerical_columns = [
+    #        'Shot distance', 'Elapsed time since Power Play', 'Last event elapsed time', 
+    #        'st_Y', 'Last event angle', 'Change in Shot Angle', 
+    #        'Shot angle']
+
+    # numerical_columns = [
+    #     'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+    #     'Speed From Previous Event', 'Change in Shot Angle', 
+    #     'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+    #     'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+    #     'Last event distance', 'Last event angle']
+
+
+    # numerical_columns = [
+    #     'Period seconds', 'st_X', 'st_Y', 
+    #     'Speed From Previous Event', 'Change in Shot Angle', 
+    #     'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+    #     'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+    #     'Last event distance', 'Last event angle']
+
+    # nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position', 'Angle Bins', 'Distance Bins']
+    # ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+
     numerical_columns = [
-        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
-        'Speed From Previous Event', 'Change in Shot Angle', 
-        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-        'Last event distance', 'Last event angle']
+           'Elapsed time since Power Play', 'Last event elapsed time', 
+           'st_Y', 'Last event angle', 'Change in Shot Angle']
 
-    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
-    ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
-
+    nominal_columns = ['Strength', 'Angle Bins', 'Distance Bins']
+    ordinal_columns = ['Num players Against', 'Rebound']
 
     # median
     fill_nan = ColumnTransformer(transformers = [
@@ -142,11 +176,11 @@ def RandomForestHyperParameters(project_name: str):
             "values": [5, 10, 15, 20]},
         "sampling_strategy": {
             "type": "discrete",
-            "values": [0.5, 0.6, 0.7, 0.8, 0.9] },
-        "variance_threshold" : {
-            "type": "discrete",
-            "values": [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-        },
+            "values": [0.3, 0.4, 0.5, 0.6] },
+        # "variance_threshold" : {
+        #     "type": "discrete",
+        #     "values": [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        # },
     }
 
     # defining the configuration dictionary
@@ -169,6 +203,10 @@ def RandomForestHyperParameters(project_name: str):
 
     X_train, X_valid, y_train, y_valid = GetData()
 
+    X_train = X_train[numerical_columns + ordinal_columns + nominal_columns]
+    X_valid = X_valid[numerical_columns + ordinal_columns + nominal_columns]
+
+    
     scaler = StandardScaler()
 
     for experiment in opt.get_experiments():
@@ -176,9 +214,9 @@ def RandomForestHyperParameters(project_name: str):
         n_estimators        = experiment.get_parameter("n_estimators")
         max_depth           = experiment.get_parameter("max_depth")
         sampling_strategy   = experiment.get_parameter("sampling_strategy")
-        variance_threshold  = experiment.get_parameter("variance_threshold")
+        # variance_threshold  = experiment.get_parameter("variance_threshold")
 
-        selector = VarianceThreshold(variance_threshold)
+        # selector = VarianceThreshold(variance_threshold)
         clf_forest = BalancedRandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
@@ -186,7 +224,8 @@ def RandomForestHyperParameters(project_name: str):
             random_state=RANDOM_SEED)
 
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_forest", clf_forest)]
+        # steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_forest", clf_forest)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_forest", clf_forest)]
         pipeline = Pipeline(steps=steps)
 
         run_search(experiment, pipeline, X_train, y_train, cv)
@@ -194,7 +233,11 @@ def RandomForestHyperParameters(project_name: str):
         pipeline.fit(X_train, y_train)
 
         y_pred = pipeline.predict(X_valid)
-        metrics = evaluate(y_valid, y_pred)
+        # metrics = evaluate(y_valid, y_pred)
+
+        # with experiment.evaluate():
+        #    experiment.log_metrics(metrics)
+
 
         experiment.end()
   
