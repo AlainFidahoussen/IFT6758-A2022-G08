@@ -25,6 +25,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC, SVC
+from sklearn.feature_selection import SelectFromModel
 
 from comet_ml import Experiment
 from comet_ml import Optimizer
@@ -43,7 +45,7 @@ RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
 
-def GetData():
+def GetTrainingData():
 
     # Get the dataset
     seasons_year = [2015, 2016, 2017, 2018]
@@ -68,6 +70,27 @@ def GetData():
 
     return X_train, X_valid, y_train, y_valid
 
+def GetTestingData():
+
+    # Get the dataset
+    seasons_year = [2019]
+    season_type = "Regular"
+    data_df = FeaturesManager.build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
+
+    features_to_keep = FeaturesManager.GetFeaturesToKeep()
+
+    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
+    feature_names = np.array(feature_names)
+
+    df_features = data_df[feature_names]
+    df_targets = data_df[target_name]
+
+    X_test = df_features
+    y_test = df_targets
+
+    X_test, y_test = OutliersManager.remove_outliers(X_test, y_test)
+
+    return X_test, y_test
 
 def KNNParameters():
     
@@ -140,7 +163,7 @@ def KNNParameters():
         project_name="hyperparameters-KNN-2",
         workspace="ift6758-a22-g08")
 
-    X_train, X_valid, y_train, y_valid = GetData()
+    X_train, X_valid, y_train, y_valid = GetTrainingData()
 
     for experiment in opt.get_experiments():
 
@@ -285,7 +308,12 @@ def clf_KNN_lasso(X_train, X_valid, y_train, y_valid):
     scaler = StandardScaler()
 
     # Features selection
-    selector = FeaturesSelector.SelectFromLinearSVC()
+    # selector = FeaturesSelector.SelectFromLinearSVC()
+    selector = SelectFromModel(LinearSVC(
+        C=0.01, 
+        penalty="l1", 
+        dual=False,
+        random_state=RANDOM_SEED))
 
 
     # Classifier
