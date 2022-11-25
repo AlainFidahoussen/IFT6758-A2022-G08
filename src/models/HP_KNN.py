@@ -70,12 +70,10 @@ def GetTrainingData():
 
     return X_train, X_valid, y_train, y_valid
 
-def GetTestingData():
+def GetTestingData(season_year, season_type):
 
     # Get the dataset
-    seasons_year = [2019]
-    season_type = "Regular"
-    data_df = FeaturesManager.build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
+    data_df = FeaturesManager.build_features([seasons_year], season_type, with_player_stats=True, with_strength_stats=True)
 
     features_to_keep = FeaturesManager.GetFeaturesToKeep()
 

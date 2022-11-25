@@ -23,6 +23,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import StratifiedKFold
+from sklearn.feature_selection import VarianceThreshold
 
 from comet_ml import Experiment
 from comet_ml import Optimizer
@@ -84,6 +85,7 @@ def GetData():
     X_valid['Distance Bins'] = pd.cut(X_valid['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
 
     X_train.drop(labels=['Shot angle', 'Shot distance'], axis=1)
+    X_valid.drop(labels=['Shot angle', 'Shot distance'], axis=1)
 
     return X_train, X_valid, y_train, y_valid
 
@@ -109,27 +111,15 @@ def run_search(experiment, model, X, y, cv):
 
     experiment.log_parameter("random_state", RANDOM_SEED)
 
+    
 def GradientBoostHyperParameters(project_name: str):
 
-    # numerical_columns = [
-    #     'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
-    #     'Speed From Previous Event', 'Change in Shot Angle', 
-    #     'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-    #     'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-    #     'Last event distance', 'Last event angle']
-
-    # nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
-    # ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
-
     numerical_columns = [
-        'Period seconds', 'st_X', 'st_Y', 
-        'Speed From Previous Event', 'Change in Shot Angle', 
-        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-        'Last event distance', 'Last event angle']
+        'Elapsed time since Power Play', 'Last event elapsed time', 
+        'st_Y', 'Last event angle', 'Change in Shot Angle']
 
-    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position', 'Angle Bins', 'Distance Bins']
-    ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+    nominal_columns = ['Strength', 'Rebound', 'Angle Bins', 'Distance Bins']
+    ordinal_columns = ['Num players Against']
 
 
     # median
@@ -166,12 +156,11 @@ def GradientBoostHyperParameters(project_name: str):
             "values": [2, 5, 8, 12, 15, 20]},
         "learning_rate": {
             "type": "discrete",
-            "values": [0.2, 0.4, 0.6, 0.8]}
-        # "selector_n_estimators": {
-        #     "type": "integer",
-        #     "scaling_type": "uniform",
-        #     "min": 20,
-        #     "max": 100}
+            "values": [0.2, 0.4, 0.6, 0.8]},
+        "variance_threshold" : {
+            "type": "discrete",
+            "values": [0.2, 0.4, 0.6, 0.8, 1.0]
+        },
     }
 
     # defining the configuration dictionary
@@ -192,15 +181,20 @@ def GradientBoostHyperParameters(project_name: str):
         project_name=project_name,
         workspace="ift6758-a22-g08")
 
-    X_train, X_valid, y_train, y_valid = GetData()
+    X_train, _, y_train, _ = GetData()
+    X_train = X_train[numerical_columns + nominal_columns + ordinal_columns]
+
+    scaler = StandardScaler()
 
     for experiment in opt.get_experiments():
 
-        n_estimators          = experiment.get_parameter("n_estimators")
-        max_features          = experiment.get_parameter("max_features")
-        max_depth             = experiment.get_parameter("max_depth")
-        learning_rate         = experiment.get_parameter("learning_rate")
-        # selector_n_estimators = experiment.get_parameter("selector_n_estimators")
+        n_estimators        = experiment.get_parameter("n_estimators")
+        max_features        = experiment.get_parameter("max_features")
+        max_depth           = experiment.get_parameter("max_depth")
+        learning_rate       = experiment.get_parameter("learning_rate")
+        variance_threshold  = experiment.get_parameter("variance_threshold")
+
+        selector = VarianceThreshold(variance_threshold)
 
         clf_gradientboost = GradientBoostingClassifier(
             n_estimators=n_estimators,
@@ -209,18 +203,11 @@ def GradientBoostHyperParameters(project_name: str):
             learning_rate=learning_rate,
             random_state=RANDOM_SEED)
         
-        # selector = FeaturesSelector.SelectFromRandomForest(selector_n_estimators)
-
         # Pipeline
-        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_gradientboost", clf_gradientboost)]
+        steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("scaler", scaler), ("selector", selector), ("clf_gradientboost", clf_gradientboost)]
         pipeline = Pipeline(steps=steps)
 
         run_search(experiment, pipeline, X_train, y_train, cv)
-
-        pipeline.fit(X_train, y_train)
-
-        y_pred = pipeline.predict(X_valid)
-        metrics = evaluate(y_valid, y_pred)
 
         experiment.end()
   
