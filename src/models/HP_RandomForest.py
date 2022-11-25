@@ -37,7 +37,21 @@ RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
 
-def GetTrainingData():
+def process_data(X, y):
+
+    X, y = OutliersManager.remove_outliers(X, y)
+    X['Rebound'] = ((X['Rebound'] == 1) & (X['Last event elapsed time'] < 4)).astype(int)
+    
+    distance_bins = np.linspace(0,185,10)
+    angle_bins = np.linspace(-185,185,10)
+    X['Angle Bins'] = pd.cut(X['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
+    X['Distance Bins'] = pd.cut(X['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+
+    X.drop(labels=['Shot angle', 'Shot distance'], axis=1)
+    return X, y
+
+
+def GetTrainingData(shap=False):
     seasons_year = [2015, 2016, 2017, 2018]
     season_type = "Regular"
     features_data = FeaturesManager.build_features(seasons_year, season_type)
@@ -49,18 +63,32 @@ def GetTrainingData():
     X = features_data[feature_names]
     y = features_data[target_name]
 
-    numerical_columns = [
-        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
-        'Speed From Previous Event', 'Change in Shot Angle', 
-        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-        'Last event distance', 'Last event angle']
+    if shap:
+        X, y = process_data(X, y)
+        numerical_columns = [
+            'Elapsed time since Power Play', 'Last event elapsed time', 
+            'st_Y', 'Last event angle', 'Change in Shot Angle']
 
-    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
-    ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+        nominal_columns = ['Strength', 'Rebound', 'Angle Bins', 'Distance Bins']
+        ordinal_columns = ['Num players Against']
+
+    else:
+        numerical_columns = [
+            'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+            'Speed From Previous Event', 'Change in Shot Angle', 
+            'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+            'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+            'Last event distance', 'Last event angle']
+
+        nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
+        ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
 
+    X_train = X_train[numerical_columns + ordinal_columns + nominal_columns]
+    X_valid = X_valid[numerical_columns + ordinal_columns + nominal_columns]
+    
     return X_train, X_valid, y_train, y_valid, numerical_columns, nominal_columns, ordinal_columns
 
 
