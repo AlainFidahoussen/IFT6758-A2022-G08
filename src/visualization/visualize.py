@@ -100,7 +100,7 @@ def compute_diff_shots(data_season_df:pd.DataFrame, num_pts_x:int=40, num_pts_y:
     return dict_diff, x_grid, y_grid
 
 
-def plot_ROC(classifiers_tuple: list[tuple], add_random=True, plot_name) -> None:
+def plot_ROC(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
 
     plt.figure(figsize=(8, 8))
 
@@ -130,7 +130,7 @@ def plot_ROC(classifiers_tuple: list[tuple], add_random=True, plot_name) -> None
     plt.savefig(f'../../blogpost/figures/ROC_{plot_name}.png', bbox_inches="tight")
 
 
-def plot_Cumulative_Goal(classifiers_tuple: list[tuple], add_random=True, plot_name) -> None:
+def plot_Cumulative_Goal(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
 
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1,1,1)
@@ -186,7 +186,7 @@ def plot_Cumulative_Goal(classifiers_tuple: list[tuple], add_random=True, plot_n
     plt.savefig(f'../../blogpost/figures/Shot_Proba_{plot_name}.png', bbox_inches="tight")
 
 
-def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True, plot_name) -> None:
+def plot_Goal_Rate(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
 
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1,1,1)
@@ -253,7 +253,7 @@ def plot_Goal_Rate(classifiers_tuple: list[tuple], add_random=True, plot_name) -
     plt.savefig(f'../../blogpost/figures/Goal_Rate_{plot_name}.png', bbox_inches="tight")
 
 
-def plot_Calibration(classifiers_tuple: list[tuple], add_random=True, plot_name) -> None:
+def plot_Calibration(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
     calibration_displays = {}
     fig = plt.figure(figsize=(8, 8))
     gs = GridSpec(2, 2)
@@ -280,21 +280,21 @@ def plot_Calibration(classifiers_tuple: list[tuple], add_random=True, plot_name)
     plt.savefig(f'../../blogpost/figures/Calibration_{plot_name}.png', bbox_inches="tight")
 
 
-def plot_all_figures(classifiers_tuple: list[tuple], add_random=True, plot_name) -> None:
+def plot_all_figures(classifiers_tuple: list[tuple], plot_name, add_random=True, ) -> None:
 
 
     # ----------------------------------------------
     # First plot: ROC Curve
-    plot_ROC(classifiers_tuple, add_random, plot_name)
+    plot_ROC(classifiers_tuple, plot_name, add_random)
 
     # ----------------------------------------------
     # Second plot: Goal Rate
-    plot_Goal_Rate(classifiers_tuple, add_random, plot_name)
+    plot_Goal_Rate(classifiers_tuple, plot_name, add_random)
 
     # ----------------------------------------------
     # Third plot: Cumulative % of goals
-    plot_Cumulative_Goal(classifiers_tuple, add_random, plot_name)
+    plot_Cumulative_Goal(classifiers_tuple, plot_name, add_random)
 
     # ----------------------------------------------
     # Last plot : calibration 
-    plot_Calibration(classifiers_tuple, add_random, plot_name)
+    plot_Calibration(classifiers_tuple, plot_name, add_random)
