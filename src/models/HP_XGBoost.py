@@ -14,9 +14,8 @@ from comet_ml import Experiment
 from comet_ml import Optimizer
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
-from sklearn.metrics import accuracy_score
 
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import KFold
@@ -24,6 +23,16 @@ from sklearn.model_selection import KFold
 from xgboost import XGBClassifier
 
 RANDOM_SEED = 42
+
+def evaluate(y_true, y_proba):
+    y_pred = np.round(y_proba)
+    return {
+        'precision': precision_score(y_true, y_pred, average='macro'),
+        'recall': recall_score(y_true, y_pred, average='macro'),
+        'macro f1': f1_score(y_true, y_pred, average='macro'),
+        'accuracy': accuracy_score(y_true, y_pred),
+        'rocauc': roc_auc_score(y_true, y_proba)
+    }
 
 def XGBoost_GridSearch(X_train, X_test, y_train, y_test):
     scaler = StandardScaler()
