@@ -106,6 +106,7 @@ def plot_ROC(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None
 
     for count, classifier in enumerate(classifiers_tuple):
 
+        
         clf = classifier[0]
         clf_name = classifier[1]
         X = classifier[2]
@@ -114,7 +115,6 @@ def plot_ROC(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None
         y_pred = clf.predict_proba(X)[:,1]
         fpr, tpr, _ = roc_curve(y.ravel(), y_pred.ravel())
         roc_auc = auc(fpr, tpr)
-
 
         plt.plot(fpr, tpr, color=colors[count], label=f"{clf_name}: AUC = %0.2f" % roc_auc)
         plt.xlabel("False Positive Rate")
@@ -127,7 +127,7 @@ def plot_ROC(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.0])
     plt.legend(loc="lower right")
-    plt.savefig(f'../../blogpost/figures/ROC_{plot_name}.png', bbox_inches="tight")
+    plt.savefig(f'../../blogpost/figures/{plot_name}_ROC.png', bbox_inches="tight")
 
 
 def plot_Cumulative_Goal(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
@@ -183,7 +183,7 @@ def plot_Cumulative_Goal(classifiers_tuple: list[tuple], plot_name, add_random=T
     plt.ylim([0.0, 100.0])
     plt.yticks(range(0, 110, 10));
     plt.legend(loc="upper right");
-    plt.savefig(f'../../blogpost/figures/Shot_Proba_{plot_name}.png', bbox_inches="tight")
+    plt.savefig(f'../../blogpost/figures/{plot_name}_Shot_Proba.png', bbox_inches="tight")
 
 
 def plot_Goal_Rate(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
@@ -250,7 +250,7 @@ def plot_Goal_Rate(classifiers_tuple: list[tuple], plot_name, add_random=True) -
     plt.yticks(range(0, 110, 10))
 
     plt.legend(loc="upper left");
-    plt.savefig(f'../../blogpost/figures/Goal_Rate_{plot_name}.png', bbox_inches="tight")
+    plt.savefig(f'../../blogpost/figures/{plot_name}_Goal_Rate.png', bbox_inches="tight")
 
 
 def plot_Calibration(classifiers_tuple: list[tuple], plot_name, add_random=True) -> None:
@@ -277,7 +277,7 @@ def plot_Calibration(classifiers_tuple: list[tuple], plot_name, add_random=True)
 
     ax_calibration_curve.set_title("Calibration plots");
     plt.legend(loc="upper left")
-    plt.savefig(f'../../blogpost/figures/Calibration_{plot_name}.png', bbox_inches="tight")
+    plt.savefig(f'../../blogpost/figures/{plot_name}_Calibration.png', bbox_inches="tight")
 
 
 def plot_all_figures(classifiers_tuple: list[tuple], plot_name, add_random=True, ) -> None:
