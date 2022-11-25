@@ -48,8 +48,8 @@ def evaluate(y_true, y_pred):
         'accuracy': accuracy_score(y_true, y_pred),
     }
 
+def GetTrainingData():
 
-def DoTraining():
     seasons_year = [2015, 2016, 2017, 2018]
     season_type = "Regular"
     features_data = FeaturesManager.build_features(seasons_year, season_type)
@@ -61,6 +61,13 @@ def DoTraining():
     y = features_data['Is Goal']
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
+
+    return  X_train, X_valid, y_train, y_valid
+
+
+def DoTraining():
+
+    X_train, X_valid, y_train, y_valid = GetTrainingData()
     
     clf_distance(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
     clf_angle(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
@@ -116,7 +123,6 @@ def DoTesting(season_year, season_type):
     with open(pkl_filename, 'rb') as file:
         clf = pickle.load(file)
 
-    print(clf)
     X_test = features_data[['Shot distance', 'Shot angle']]
     y_pred = clf.predict(X_test)
     metrics = evaluate(y_test, y_pred)

@@ -35,7 +35,7 @@ RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
 
-def GetData():
+def GetTrainingData():
 
     # Get the dataset
     seasons_year = [2015, 2016, 2017, 2018]
@@ -59,6 +59,23 @@ def GetData():
     X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
 
     return X_train, X_valid, y_train, y_valid
+
+
+def GetTestingData(season_year, season_type):
+
+    # Get the dataset
+    features_data = FeaturesManager.build_features([season_year], season_type)
+
+    features_to_keep = FeaturesManager.GetFeaturesToKeep()
+    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
+    feature_names = np.array(feature_names)
+    
+    X_test = features_data[feature_names]
+    y_test = features_data[target_name]
+
+    X_test, y_test = OutliersManager.remove_outliers(X_test, y_test)
+
+    return X_test, y_test
 
 
 def run_search(experiment, model, X, y, cv):
@@ -153,7 +170,7 @@ def AdaBoostHyperParameters(project_name: str):
         project_name=project_name,
         workspace="ift6758-a22-g08")
 
-    X_train, X_valid, y_train, y_valid = GetData()
+    X_train, X_valid, y_train, y_valid = GetTrainingData()
     scaler = StandardScaler()
 
    
@@ -213,35 +230,13 @@ def evaluate(y_true, y_proba):
 
 
 def DoTraining():
-    seasons_year = [2015, 2016, 2017, 2018]
-    season_type = "Regular"
-    features_data = FeaturesManager.build_features(seasons_year, season_type)
-
-    features_to_keep = FeaturesManager.GetFeaturesToKeep()
-    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
-    feature_names = np.array(feature_names)
-    
-    X = features_data[feature_names]
-    y = features_data[target_name]
-
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
-    
-    X_train, y_train = OutliersManager.remove_outliers(X_train, y_train)
-    X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
-
+    X_train, X_valid, y_train, y_valid = GetTrainingData()
     clf_adaboost_anova(X_train, X_valid, y_train, y_valid)
 
 
 def DoTesting(season_year, season_type):
 
-    features_data = FeaturesManager.build_features([season_year], season_type)
-
-    features_to_keep = FeaturesManager.GetFeaturesToKeep()
-    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
-    feature_names = np.array(feature_names)
-    
-    X_test = features_data[feature_names]
-    y_test = features_data[target_name]
+    X_test, y_test = GetTestingData()
 
     api = API()
 

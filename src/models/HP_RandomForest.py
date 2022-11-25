@@ -37,44 +37,54 @@ RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
 
-def GetData():
-
-    # Get the dataset
+def GetTrainingData():
     seasons_year = [2015, 2016, 2017, 2018]
     season_type = "Regular"
-    data_df = FeaturesManager.build_features(seasons_year, season_type, with_player_stats=True, with_strength_stats=True)
+    features_data = FeaturesManager.build_features(seasons_year, season_type)
 
     features_to_keep = FeaturesManager.GetFeaturesToKeep()
-
     feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
     feature_names = np.array(feature_names)
+    
+    X = features_data[feature_names]
+    y = features_data[target_name]
 
-    df_features = data_df[feature_names]
-    df_targets = data_df[target_name]
+    numerical_columns = [
+        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+        'Speed From Previous Event', 'Change in Shot Angle', 
+        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+        'Last event distance', 'Last event angle']
 
-    X = df_features
-    y = df_targets
+    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
+    ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
 
-    X_train, y_train = OutliersManager.remove_outliers(X_train, y_train)
-    X_valid, y_valid = OutliersManager.remove_outliers(X_valid, y_valid)
+    return X_train, X_valid, y_train, y_valid, numerical_columns, nominal_columns, ordinal_columns
 
-    X_train['Rebound'] = ((X_train['Rebound'] == 1) & (X_train['Last event elapsed time'] < 4)).astype(int)
-    X_valid['Rebound'] = ((X_valid['Rebound'] == 1) & (X_valid['Last event elapsed time'] < 4)).astype(int)
 
-    distance_bins = np.linspace(0,185,10)
-    angle_bins = np.linspace(-185,185,10)
-    X_train['Angle Bins'] = pd.cut(X_train['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
-    X_train['Distance Bins'] = pd.cut(X_train['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+def GetTestingData(season_year, season_type):
+    features_data = FeaturesManager.build_features([season_year], season_type)
 
-    X_valid['Angle Bins'] = pd.cut(X_valid['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
-    X_valid['Distance Bins'] = pd.cut(X_valid['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
+    features_to_keep = FeaturesManager.GetFeaturesToKeep()
+    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
+    feature_names = np.array(feature_names)
+    
+    X_test = features_data[feature_names]
+    y_test = features_data[target_name]
 
-    X_train.drop(labels=['Shot angle', 'Shot distance'], axis=1)
-    X_valid.drop(labels=['Shot angle', 'Shot distance'], axis=1)
+    numerical_columns = [
+        'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
+        'Speed From Previous Event', 'Change in Shot Angle', 
+        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
+        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
+        'Last event distance', 'Last event angle']
 
-    return X_train, X_valid, y_train, y_valid
+    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position']
+    ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+
+    return X_test, y_test, numerical_columns, nominal_columns, ordinal_columns
 
 
 def run_search(experiment, model, X, y, cv):
@@ -101,36 +111,8 @@ def run_search(experiment, model, X, y, cv):
 
 def RandomForestHyperParameters(project_name: str):
 
-    # numerical_columns = [
-    #        'Shot distance', 'Elapsed time since Power Play', 'Last event elapsed time', 
-    #        'st_Y', 'Last event angle', 'Change in Shot Angle', 
-    #        'Shot angle']
-
-    # numerical_columns = [
-    #     'Period seconds', 'st_X', 'st_Y', 'Shot distance', 'Shot angle', 
-    #     'Speed From Previous Event', 'Change in Shot Angle', 
-    #     'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-    #     'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-    #     'Last event distance', 'Last event angle']
-
-
-    # numerical_columns = [
-    #     'Period seconds', 'st_X', 'st_Y', 
-    #     'Speed From Previous Event', 'Change in Shot Angle', 
-    #     'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-    #     'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-    #     'Last event distance', 'Last event angle']
-
-    # nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position', 'Angle Bins', 'Distance Bins']
-    # ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
-
-    numerical_columns = [
-           'Elapsed time since Power Play', 'Last event elapsed time', 
-           'st_Y', 'Last event angle', 'Change in Shot Angle']
-
-    nominal_columns = ['Strength', 'Angle Bins', 'Distance Bins']
-    ordinal_columns = ['Num players Against', 'Rebound']
-
+    X_train, X_Valid, y_train, y_valid, numerical_columns, nominal_columns, ordinal_columns = GetTrainingData()
+   
     # median
     fill_nan = ColumnTransformer(transformers = [
         ('cat', SimpleImputer(strategy ='most_frequent'), nominal_columns + ordinal_columns),
@@ -159,13 +141,21 @@ def RandomForestHyperParameters(project_name: str):
         "max_depth": {
             "type": "discrete",
             "values": [5, 10, 15, 20]},
+        "min_samples_split": {
+            "type": "discrete",
+            "values": [2, 4, 6, 8]},
+        "criterion": {
+            "type": "categorical",
+            "values": ['gini', 'entropy']},
+        "max_features": {
+            "type": "categorical",
+            "values": ['sqrt', 'log2']},
         "sampling_strategy": {
             "type": "discrete",
-            "values": [0.3, 0.4, 0.5, 0.6] },
-        # "variance_threshold" : {
-        #     "type": "discrete",
-        #     "values": [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-        # },
+            "values": [0.3, 0.4, 0.5, 0.6]},
+        "class_weight": {
+            "type": "categorical",
+            "values": ["balanced", "balanced_subsample"]}
     }
 
     # defining the configuration dictionary
@@ -183,38 +173,33 @@ def RandomForestHyperParameters(project_name: str):
     opt = Optimizer(
         api_key=os.environ.get('COMET_API_KEY'),
         config=config_dict,
-        project_name="best-models",
+        project_name=project_name,
         workspace="ift6758-a22-g08")
-
-    X_train, X_valid, y_train, y_valid = GetData()
-
-    X_train = X_train[numerical_columns + ordinal_columns + nominal_columns]
-    X_valid = X_valid[numerical_columns + ordinal_columns + nominal_columns]
-
-    
-    scaler = StandardScaler()
 
     for experiment in opt.get_experiments():
 
         n_estimators        = experiment.get_parameter("n_estimators")
         max_depth           = experiment.get_parameter("max_depth")
         sampling_strategy   = experiment.get_parameter("sampling_strategy")
-        # variance_threshold  = experiment.get_parameter("variance_threshold")
+        min_samples_split   = experiment.get_parameter("min_samples_split")
+        criterion           = experiment.get_parameter("criterion")
+        max_features        = experiment.get_parameter("max_features")
+        class_weight        = experiment.get_parameter("class_weight")
 
-        # selector = VarianceThreshold(variance_threshold)
         clf_forest = BalancedRandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
             sampling_strategy=sampling_strategy,
+            min_samples_split=min_samples_split,
+            criterion=criterion,
+            max_features=max_features,
             random_state=RANDOM_SEED)
 
         # Pipeline
-        # steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ('scaler', scaler), ('selector', selector), ("clf_forest", clf_forest)]
         steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_forest", clf_forest)]
         pipeline = Pipeline(steps=steps)
 
         run_search(experiment, pipeline, X_train, y_train, cv)
-        pipeline.fit(X_train, y_train)
 
         experiment.end()
   
@@ -247,72 +232,21 @@ def evaluate(y_true, y_proba):
 
 
 
-def process_data(X, y):
-
-    X, y = OutliersManager.remove_outliers(X, y)
-    X['Rebound'] = ((X['Rebound'] == 1) & (X['Last event elapsed time'] < 4)).astype(int)
-    
-    distance_bins = np.linspace(0,185,10)
-    angle_bins = np.linspace(-185,185,10)
-    X['Angle Bins'] = pd.cut(X['Shot angle'], bins=angle_bins, include_lowest=True, labels=['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'])
-    X['Distance Bins'] = pd.cut(X['Shot distance'], bins=distance_bins, include_lowest=True, labels=['a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] )
-
-    X.drop(labels=['Shot angle', 'Shot distance'], axis=1)
-    return X, y
-
-
-def GetTraining():
-    seasons_year = [2015, 2016, 2017, 2018]
-    season_type = "Regular"
-    features_data = FeaturesManager.build_features(seasons_year, season_type)
-
-    features_to_keep = FeaturesManager.GetFeaturesToKeep()
-    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
-    feature_names = np.array(feature_names)
-    
-    X = features_data[feature_names]
-    y = features_data[target_name]
-
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_SEED, stratify=y)
-
-    X_train, y_train = process_data(X_train, y_train)
-    X_valid, y_valid = process_data(X_valid, y_valid)
-
-    return X_train, X_valid, y_train, y_valid
-
-
-def GetTesting(season_year, season_type):
-    features_data = FeaturesManager.build_features([season_year], season_type)
-
-    features_to_keep = FeaturesManager.GetFeaturesToKeep()
-    feature_names, target_name = features_to_keep[0:-1], features_to_keep[-1]
-    feature_names = np.array(feature_names)
-    
-    X_test = features_data[feature_names]
-    y_test = features_data[target_name]
-
-    X_test, y_test = process_data(X_test, y_test)
-
-    return X_test, y_test
-
-
-
 def DoTraining():
-
-    X_train, X_valid, y_train, y_valid = GetTraining()
-    clf_randomforest_binning(X_train, X_valid, y_train, y_valid, RANDOM_SEED)
+    X_train, X_valid, y_train, y_valid, numerical_columns, nominal_columns, ordinal_columns = GetTrainingData()
+    clf_randomforest(X_train, X_valid, y_train, y_valid, numerical_columns, nominal_columns, ordinal_columns)
 
 
 def DoTesting(season_year, season_type):
 
-    X_test, y_test = GetTesting(season_year, season_type)
+    X_test, y_test, _ = GetTestingData(season_year, season_type)
     api = API()
 
     workspace_name = "ift6758-a22-g08"
 
     # Download and evaluate the Logistic Regresion on Distance
-    api.download_registry_model(workspace_name, "RandomForest_Binning", "1.0.0", output_path=os.environ["NHL_MODEL_DIR"], expand=True)
-    pkl_filename = os.path.join(os.environ["NHL_MODEL_DIR"], "RandomForest_Binning.pkl")
+    api.download_registry_model(workspace_name, "RandomForest", "1.0.0", output_path=os.environ["NHL_MODEL_DIR"], expand=True)
+    pkl_filename = os.path.join(os.environ["NHL_MODEL_DIR"], "RandomForest.pkl")
     with open(pkl_filename, 'rb') as file:
         clf = pickle.load(file)
 
@@ -320,25 +254,15 @@ def DoTesting(season_year, season_type):
     metrics = evaluate(y_test, y_proba)
     
     print('--------------------------------')
-    print('RandomForest - Binning')
+    print('RandomForest - All Features')
     print(metrics)
 
 
 
-def clf_randomforest_binning(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
+def clf_randomforest(X_train, X_valid, y_train, y_valid, numerical_columns, nominal_columns, ordinal_columns):
     experiment = start_experiment()
     
-    experiment.set_name('RandomForest_Binning')
-
-    numerical_columns = [
-        'Period seconds', 'st_X', 'st_Y', 
-        'Speed From Previous Event', 'Change in Shot Angle', 
-        'Shooter Goal Ratio Last Season', 'Goalie Goal Ratio Last Season',
-        'Elapsed time since Power Play', 'Last event elapsed time', 'Last event st_X', 'Last event st_Y', 
-        'Last event distance', 'Last event angle']
-
-    nominal_columns = ['Shot Type', 'Strength', 'Shooter Side', 'Shooter Ice Position', 'Angle Bins', 'Distance Bins']
-    ordinal_columns = ['Period', 'Num players With', 'Num players Against', 'Is Empty', 'Rebound']
+    experiment.set_name('RandomForest')
 
     # median
     fill_nan = ColumnTransformer(transformers = [
@@ -355,25 +279,32 @@ def clf_randomforest_binning(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
     experiment.log_dataset_hash(X_train)
 
     # Classifier
-    n_estimators = 74
-    max_depth = 5
-    sampling_strategy = 0.4
+    n_estimators = 82
+    max_depth = 10
+    sampling_strategy = 0.5
+    min_samples_split = 8
+    criterion = 'entropy'
+    max_features = 'log2'
+
     clf_forest = BalancedRandomForestClassifier(
         n_estimators=n_estimators,
-        max_depth=max_depth, 
+        max_depth=max_depth,
         sampling_strategy=sampling_strategy,
+        min_samples_split=min_samples_split,
+        criterion=criterion,
+        max_features=max_features,
         random_state=RANDOM_SEED)
-    
+
     # Pipeline
     steps = [('fill_nan', fill_nan), ('one_hot', one_hot),  ("clf_forest", clf_forest)]
     pipeline = Pipeline(steps=steps).fit(X_train, y_train)
     
 
-    pkl_filename = './models/Forest_Binning.pkl'
+    pkl_filename = './models/RandomForest.pkl'
     with open(pkl_filename, 'wb') as file:
         pickle.dump(pipeline, file)
-    experiment.log_model("Forest_Binning", pkl_filename)
-    experiment.register_model("Forest_Binning")
+    experiment.log_model("RandomForest", pkl_filename)
+    experiment.register_model("RandomForest")
 
     with experiment.train():
         y_proba = pipeline.predict_proba(X_train)[:,1]
@@ -389,7 +320,7 @@ def clf_randomforest_binning(X_train, X_valid, y_train, y_valid, RANDOM_SEED):
         
     params={"random_state": RANDOM_SEED,
         "model_type": "forest",
-        "scaler": "StdScaler",
+        "scaler": "False",
         # "param_grid":str(param_grid),
         "stratify":True, 
         "data": "Binning",}
