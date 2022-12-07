@@ -8,13 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class ServingClient:
-    def __init__(self, ip: str = "0.0.0.0", port: int = 5000, features=None):
+    def __init__(self, ip: str = "0.0.0.0", port: int = 5000):
         self.base_url = f"http://{ip}:{port}"
         logger.info(f"Initializing client; base URL: {self.base_url}")
 
-        if features is None:
-            features = ["distance"]
-        self.features = features
 
         # any other potential initialization
 
@@ -28,12 +25,34 @@ class ServingClient:
             X (Dataframe): Input dataframe to submit to the prediction service.
         """
 
-        raise NotImplementedError("TODO: implement this function")
+        # Remove the ground truth
+        X_features = X.drop(labels=['Is Goal'], axis=1)
+
+        # Send the request to the server to get the prediction (goal probability)
+        request = requests.post(
+            url = self.base_url + '/predict', 
+            json = json.loads(X_features.to_json()))
+
+        # Get the response, in json format
+        response = request.json() # Not sure, we should test if we actually got a valid answer!
+
+        # Append the response to the dataframe
+        X_out = X.copy()
+        X_out['Shot probability'] = response['Shot probability']
+
+        return X_out
+
 
     def logs(self) -> dict:
         """Get server logs"""
 
-        raise NotImplementedError("TODO: implement this function")
+        request = requests.get(
+            url = self.base_url + '/logs')
+
+        response = request.json()
+
+        return response
+
 
     def download_registry_model(self, workspace: str, model: str, version: str) -> dict:
         """
@@ -51,4 +70,13 @@ class ServingClient:
             version (str): The model version to download
         """
 
-        raise NotImplementedError("TODO: implement this function")
+        request_dist = {"workspace": workspace, "model": model, "version": version}
+
+        # Send the request to the server to download the model
+        request = requests.post(
+            url = self.base_url + '/download_registry_model', 
+            json = json.loads(request_dist.to_json()))
+
+        response = request.json()
+
+        return response

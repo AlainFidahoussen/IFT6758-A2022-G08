@@ -219,7 +219,7 @@ class NHLDataManager:
             return {}
 
 
-    def load_game(self, season_year: list, season_type: str, game_number: int) -> dict:
+    def load_game(self, season_year: int, season_type: str, game_number: int) -> dict:
         """Download or read data of a specific game
 
         :param season_year: specific year in format XXXX
