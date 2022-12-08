@@ -22,7 +22,6 @@ import sys
 sys.path.append('../')
 import ift6758
 
-
 LOG_FILE = os.environ.get("FLASK_LOG", "flask.log")
 
 app = Flask(__name__)
@@ -36,20 +35,17 @@ def before_first_request():
     Hook to handle any initialization before the first request (e.g. load model,
     setup logging handler, etc.)
     """
-    # TODO: setup basic logging configuration
+    # Setup basic logging configuration
     logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
-
-    # TODO: any other initialization before the first request (e.g. load default model)
-    # Maybe download baseline model?
 
 @app.route("/logs", methods=["GET"])
 def logs():
     """Reads data from the log file and returns them as the response"""
     
-    # TODO: read the log file specified and return the data
-    raise NotImplementedError("TODO: implement this endpoint")
+    # Read the log file specified and return the data
+    with open("flask.log") as f:
+        response = f.readlines()
 
-    response = None
     return jsonify(response)  # response must be json serializable!
 
 
@@ -70,6 +66,8 @@ def download_registry_model():
         }
     
     """
+    api = comet_ml.api.API(api_key=os.environ.get('COMET_API_KEY'))
+
     # Get POST json data
     json = request.get_json()
     app.logger.info(json)
@@ -78,36 +76,36 @@ def download_registry_model():
     workspace = json['workspace']
     model_name = json['model']
     version = json['version']
-    is_downloaded = model_name in os.listdir("../models")
+
+    # Convert model name to find model file
+    try:
+        # app.logger.info(api.get_registry_model_details(workspace, model_name, version)["assets"])
+        filename = api.get_registry_model_details(workspace, model_name, version)["assets"][0]["fileName"]
+    except:
+        app.logger.info(f"Could not find {model_name}.")
+        return ('', 401)
+    is_downloaded = filename in os.listdir("../models")
+    global model
     
     # If yes, load that model and write to the log about the model change.  
-    api = comet_ml.api.API(api_key=os.environ.get('COMET_API_KEY'))
     if is_downloaded:
+        with open(os.path.join(model_path, filename), 'rb') as f:
+            model = pickle.load(f)
         app.logger.info(f"Loaded {model_name} (already downloaded).")
     else:
-        # TODO: if no, try downloading the model: if it succeeds, load that model and write to the log about the model change. If it fails, write to the log about the failure and keep the currently loaded model.
+        # If no, try downloading the model: if it succeeds, load that model and write to the log about the model change. If it fails, write to the log about the failure and keep the currently loaded model.
         try:
             api.download_registry_model(workspace, model_name, version, output_path=model_path)
-            app.logger.info(f"Downloaded {model_name}.")
-            # TODO: load model & log it
-            with open(os.path.join(model_path, "XGBoost_SelectKBest.pkl"), 'rb') as f:
-                global model
+            app.logger.info(f"Downloaded {filename}.")
+            with open(os.path.join(model_path, filename), 'rb') as f:
                 model = pickle.load(f)
             app.logger.info(f"Loaded {model_name}.")
         except:
             app.logger.info(f"Failed to download model {model_name}, keeping current model.")
-    
-    
-
+    app.logger.info(str(model))
+    return ('', 204)
     # Tip: you can implement a "CometMLClient" similar to your App client to abstract all of this
     # logic and querying of the CometML servers away to keep it clean here
-
-    raise NotImplementedError("TODO: implement this endpoint")
-
-    response = None
-
-    app.logger.info(response)
-    return jsonify(response)  # response must be json serializable!
 
 
 @app.route("/predict", methods=["POST"])
@@ -117,9 +115,15 @@ def predict():
 
     Returns predictions
     """
+    if model == None:
+        # No model has been loaded yet
+        return "No model loaded!", 403
+
     # Get POST json data
     json = request.get_json()
     app.logger.info(json)
+
+    pd.read_json(json)
 
     # TODO:
     raise NotImplementedError("TODO: implement this enpdoint")
@@ -135,18 +139,19 @@ def default():
     """Testing if Flask works."""
     """Start server with gunicorn --bind 0.0.0.0:6758 app:app"""
     """To check this page go to http://127.0.0.1:6758/"""
+    app.logger.info("Hello World!")
     return "Hello World"
 
 @app.route("/test_download")
 def test_download():
-    api = comet_ml.api.API(api_key=os.environ.get('COMET_API_KEY'))
     workspace = "ift6758-a22-g08"
     model_name = "xgboost-randomforest"
     version = "1.0.0"
-    # return api.get_registry_model_names(workspace)
-    api.download_registry_model(workspace, model_name, version, output_path=model_path)
-    return f"Downloaded {model_name}!"
-
-@app.route("/downloaded")
-def check_downloaded_model():
-    pass
+    import json
+    import requests
+    requests.post("http://127.0.0.1:6758/download_registry_model", json={
+        "workspace": workspace,
+        "model": model_name,
+        "version": version
+    })
+    return ""
