@@ -121,14 +121,12 @@ def predict():
 
     # Get POST json data
     json = request.get_json()
-    app.logger.info(json)
 
-    pd.read_json(json)
-
-    # TODO:
-    raise NotImplementedError("TODO: implement this enpdoint")
-    
-    response = None
+    X = pd.DataFrame.from_dict(json)
+    app.logger.info(X.head())
+    # TODO: Load MinMaxScaler (fitted on train data) and transform input with it
+    preds = model.predict_proba(X)
+    response = preds.tolist()
 
     app.logger.info(response)
     return jsonify(response)  # response must be json serializable!
@@ -141,17 +139,3 @@ def default():
     """To check this page go to http://127.0.0.1:6758/"""
     app.logger.info("Hello World!")
     return "Hello World"
-
-@app.route("/test_download")
-def test_download():
-    workspace = "ift6758-a22-g08"
-    model_name = "xgboost-randomforest"
-    version = "1.0.0"
-    import json
-    import requests
-    requests.post("http://127.0.0.1:6758/download_registry_model", json={
-        "workspace": workspace,
-        "model": model_name,
-        "version": version
-    })
-    return ""

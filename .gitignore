@@ -79,7 +79,7 @@ target/
 # exclude data from source control by default
 /data/
 /notebooks/data
-/notebooks/Milestone-2/data/
+/notebooks/Milestone-*/data/
 
 # Mac OS-specific storage files
 .DS_Store
@@ -93,3 +93,4 @@ target/
 
 # Model files
 docker-project/models/
+models/
