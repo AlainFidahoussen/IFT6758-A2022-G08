@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv();
+
+
 import serving_client
 import pandas as pd
 from collections import defaultdict
@@ -7,7 +11,7 @@ import src.data.NHLDataManager as DataManager
 class GameClient:
     def __init__(self):
         self.tracker = defaultdict(list)
-        self.service_client = serving_client()
+        self.service_client = serving_client.ServingClient()
         self.logs = ""
 
 
@@ -34,6 +38,7 @@ class GameClient:
             season_year=season_year,
             season_type=season_type,
             game_number=game_number)
+
 
         df_features_out = self.service_client.predict(df_features)
 
