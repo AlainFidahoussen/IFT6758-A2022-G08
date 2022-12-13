@@ -15,3 +15,5 @@ comet_ml
 jupyterlab
 ipywidgets
 streamlit
+python-dotenv
+cloudpickle

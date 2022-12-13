@@ -1,3 +1,1 @@
-#!/bin/bash
-
-echo "TODO: fill in the docker run command"
+docker run --name=ift6758-serving -p3000:6758 ift6758-serving

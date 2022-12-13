@@ -25,7 +25,7 @@ import cloudpickle
 import json
 
 import sys
-sys.path.append('../')
+# sys.path.append('../')
 
 LOG_FILE = os.environ.get("FLASK_LOG", "flask.log")
 
@@ -33,6 +33,9 @@ app = Flask(__name__)
 
 model = None
 # model_path = "../models"
+if "NHL_MODEL_DIR" not in os.environ.keys():
+    os.environ['NHL_MODEL_DIR'] = "../ift6758/models"
+        
 model_path = os.environ['NHL_MODEL_DIR']
 
 @app.before_first_request
