@@ -17,9 +17,8 @@ import os
 from pathlib import Path
 import logging
 from flask import Flask, jsonify, request, abort
-import sklearn
 import pandas as pd
-import joblib
+import numpy as np
 import comet_ml
 import cloudpickle as pickle
 # import pickle5 as pickle
@@ -32,9 +31,9 @@ LOG_FILE = os.environ.get("FLASK_LOG", "flask.log")
 
 app = Flask(__name__)
 
-global model 
 
-model = None
+cache = {}
+
 # model_path = "../models"
 if "NHL_MODEL_DIR" not in os.environ.keys():
     os.environ['NHL_MODEL_DIR'] = "./models"
@@ -106,12 +105,11 @@ def download_registry_model():
         return ('', 401)
 
     is_downloaded = filename in os.listdir(model_path)
-    global model
     
     # If yes, load that model and write to the log about the model change.  
     if is_downloaded:
         with open(os.path.join(model_path, filename), 'rb') as f:
-            model = pickle.load(f)
+            cache['model'] = pickle.load(f)
         app.logger.info(f"Loaded {model_name} (already downloaded).")
     else:
         # If no, try downloading the model: if it succeeds, load that model and write to the log about the model change. If it fails, write to the log about the failure and keep the currently loaded model.
@@ -119,7 +117,7 @@ def download_registry_model():
             api.download_registry_model(workspace, model_name, version, output_path=model_path)
             app.logger.info(f"Downloaded {filename}.")
             with open(os.path.join(model_path, filename), 'rb') as f:
-                model = pickle.load(f)
+                cache['model'] = pickle.load(f)
             app.logger.info(f"Loaded {model_name}.")
         except Exception as e:
             app.logger.error(f"Failed to download model {model_name}, keeping current model.")
@@ -138,7 +136,8 @@ def predict():
 
     Returns predictions
     """
-    if model is None:
+
+    if 'model' not in cache.keys():
         # No model has been loaded yet
         app.logger.error(f"No model loaded!")
         return jsonify([])
@@ -148,16 +147,19 @@ def predict():
 
     X = pd.DataFrame.from_dict(json)
     app.logger.info("DataFrame Shape = " + str(X.shape))
-
-    # TODO: Load MinMaxScaler (fitted on train data) and transform input with it
-    try:
-        preds = model.predict_proba(X)[:,1]
-        response = preds.tolist()
-        app.logger.info("Shot probability = " + str(response))
-    except Exception as e:
-        app.logger.error("Failed to predict")
-        app.logger.error(e)
+    if X.shape[0] == 0:
+        app.logger.warning("Empty DataFrame!")
         response = []
+
+    else:
+        try:
+            preds = cache['model'].predict_proba(X)[:,1]
+            response = preds.tolist()
+            app.logger.info("Shot probability Mean = " + str(np.array(response).mean()))
+        except Exception as e:
+            app.logger.error("Failed to predict")
+            app.logger.error(e)
+            response = []
 
     return jsonify(response)  # response must be json serializable!
 

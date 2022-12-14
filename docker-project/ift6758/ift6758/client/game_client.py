@@ -35,12 +35,14 @@ class GameClient:
 
 if __name__ == "__main__":
 
+    # Load a model
     sc = serving_client.ServingClient()
     workspace = "ift6758-a22-g08"
     model = "randomforest-allfeatures"
     version = "1.0.0"
     sc.download_registry_model(workspace, model, version)
 
+    # Get a prediction
     gc = GameClient()
     season_year = 2016
     season_type = "Regular"
@@ -48,8 +50,18 @@ if __name__ == "__main__":
     df_features = gc.ping_game(season_year, season_type, game_number)
     df_features_out = sc.predict(df_features)
 
+    # Should not process the events the second time, as it already did before
     df_features = gc.ping_game(season_year, season_type, game_number)
-    if len(df_features > 0):
-        df_features_out = sc.predict(df_features)
+    df_features_out = sc.predict(df_features)
+
+
+    # Try another model
+    model = "xgboost-randomforest-ii"
+    sc.download_registry_model(workspace, model, version)
+
+    # Get a prediction
+    game_number = 25
+    df_features = gc.ping_game(season_year, season_type, game_number)
+    df_features_out = sc.predict(df_features)
 
     print(sc.logs())

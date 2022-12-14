@@ -17,15 +17,16 @@ WORKDIR /code
 #
 # Install librairies using pip
 # https://docs.docker.com/engine/reference/builder/#copy
-# COPY requirements.txt ./
-ADD ift6758 ./ift6758
+COPY ift6758/requirements.txt ./
+# ADD ift6758 ./ift6758
 
 #
 # Run a shell command (tip: chain shell commands with && rather than multiple RUN commands)
 # https://docs.docker.com/engine/reference/builder/#run
 #
 # RUN pip install -r requirements.txt
-RUN  pip install --upgrade pip && pip install -e ift6758 && pip install -r ift6758/requirements.txt
+# RUN  pip install --upgrade pip && pip install -e ift6758 && pip install -r ift6758/requirements.txt
+RUN  pip install --no-cache-dir  --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 #
 # Add a file or directory
@@ -37,8 +38,8 @@ ADD ./serving/app2.py app.py
 # Set an environment variable:
 # https://docs.docker.com/engine/reference/builder/#env
 #
-ENV NHL_DATA_DIR=./ift6758/ift6758/data
-ENV COMET_API_KEY=QZdghKtgvGASmWLqe8bMYZnxN
+ENV NHL_DATA_DIR=./data
+
 #
 # Expose a port
 # https://docs.docker.com/engine/reference/builder/#port
@@ -49,11 +50,11 @@ EXPOSE 5000
 # https://docs.docker.com/engine/reference/builder/#cmd
 #
 # CMD ["python", "app.py"]
-CMD ["gunicorn"  , "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn" , "-b", "0.0.0.0:5000", "app:app", "--reload"]
 
 
 # TODO: add code, optionally a default model if you want 
-# CMD ["python", "ift6758/ift6758/client/serving_client.py"]
+
 
 # TODO: install libs
 
