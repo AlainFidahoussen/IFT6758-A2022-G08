@@ -8,7 +8,7 @@
 
 # https://docs.docker.com/engine/reference/builder/#from
 # You shouldn't need to change this
-FROM python:3.7
+FROM python:3.9
 
 # https://docs.docker.com/engine/reference/builder/#workdir
 # Create and cd into /code as your working directory
@@ -31,28 +31,29 @@ RUN  pip install --upgrade pip && pip install -e ift6758 && pip install -r ift67
 # Add a file or directory
 # https://docs.docker.com/engine/reference/builder/#add
 #
-ADD ./serving/app2.py ./app.py
+ADD ./serving/app2.py app.py
 
 
 # Set an environment variable:
 # https://docs.docker.com/engine/reference/builder/#env
 #
-ENV NHL_DATA_DIR=./data
+ENV NHL_DATA_DIR=./ift6758/ift6758/data
+ENV COMET_API_KEY=QZdghKtgvGASmWLqe8bMYZnxN
 #
 # Expose a port
 # https://docs.docker.com/engine/reference/builder/#port
 #
-EXPOSE 6758
+EXPOSE 5000
 #
 # Provide default command for executing container
 # https://docs.docker.com/engine/reference/builder/#cmd
 #
-CMD gunicorn --bind 0.0.0.0:6758 app:app
-
+# CMD ["python", "app.py"]
+CMD ["gunicorn"  , "-b", "0.0.0.0:5000", "app:app"]
 
 
 # TODO: add code, optionally a default model if you want 
-
+# CMD ["python", "ift6758/ift6758/client/serving_client.py"]
 
 # TODO: install libs
 

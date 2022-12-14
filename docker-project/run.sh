@@ -1,1 +1,1 @@
-docker run --name=ift6758-serving -p3000:6758 ift6758-serving
+docker run -it -d -p5000:5000 -e COMET_API_KEY=$COMET_API_KEY ift6758-serving

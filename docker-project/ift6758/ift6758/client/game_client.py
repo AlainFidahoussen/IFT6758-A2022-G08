@@ -10,12 +10,11 @@ import src.data.NHLDataManager as DataManager
 
 class GameClient:
     def __init__(self):
-        self.tracker = defaultdict(list)
-        self.service_client = serving_client.ServingClient()
+        self.tracker = []
         self.logs = ""
 
 
-    def get_game_features(self, season_year: str, season_type: str, game_number: str) -> pd.DataFrame:
+    def ping_game(self, season_year: str, season_type: str, game_number: str) -> pd.DataFrame:
 
         df_features = FeaturesManager.build_features_one_game(
             season_year=season_year, 
@@ -24,34 +23,33 @@ class GameClient:
             with_player_stats=True, 
             with_strength_stats=True)
 
-        if df_features is None:
-            self.logs = f"Failed to get features data from season {season_year}/{season_type}, game {game_number}"
-        else:
-            self.logs = f"Succeed to get features data from season {season_year}/{season_type}, game {game_number}"
+        # Get only the new events (not in the tracker)
+        df_features = df_features.loc[~df_features['Event Index'].isin(self.tracker)]
+
+        # Update the tracker
+        list_events = df_features['Event Index']
+        self.tracker.extend(list_events)
 
         return df_features
 
 
-    def get_game_prediction(self, season_year: str, season_type: str, game_number: str):
+if __name__ == "__main__":
 
-        df_features = self.get_game_features(
-            season_year=season_year,
-            season_type=season_type,
-            game_number=game_number)
+    sc = serving_client.ServingClient()
+    workspace = "ift6758-a22-g08"
+    model = "randomforest-allfeatures"
+    version = "1.0.0"
+    sc.download_registry_model(workspace, model, version)
 
+    gc = GameClient()
+    season_year = 2016
+    season_type = "Regular"
+    game_number = 20
+    df_features = gc.ping_game(season_year, season_type, game_number)
+    df_features_out = sc.predict(df_features)
 
-        df_features_out = self.service_client.predict(df_features)
+    df_features = gc.ping_game(season_year, season_type, game_number)
+    if len(df_features > 0):
+        df_features_out = sc.predict(df_features)
 
-        if len(df_features_out) > 0:
-
-            data_manager = DataManager.NHLDataManager()
-            game_id = data_manager.get_game_id(
-                season_year=season_year,
-                season_type=season_type,
-                game_number=game_number)
-
-            # Get the list of events we just processed and update the tracker, so we don't do it again
-            list_events = df_features_out['Event Index']
-            self.tracker[game_id].extend(list_events)
-
-        return df_features_out
+    print(sc.logs())

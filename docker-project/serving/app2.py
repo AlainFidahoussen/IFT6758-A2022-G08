@@ -21,7 +21,8 @@ import sklearn
 import pandas as pd
 import joblib
 import comet_ml
-import cloudpickle
+import cloudpickle as pickle
+# import pickle5 as pickle
 import json
 
 import sys
@@ -31,12 +32,15 @@ LOG_FILE = os.environ.get("FLASK_LOG", "flask.log")
 
 app = Flask(__name__)
 
+global model 
+
 model = None
 # model_path = "../models"
 if "NHL_MODEL_DIR" not in os.environ.keys():
-    os.environ['NHL_MODEL_DIR'] = "../ift6758/models"
+    os.environ['NHL_MODEL_DIR'] = "./models"
         
 model_path = os.environ['NHL_MODEL_DIR']
+os.makedirs(model_path, exist_ok=True)
 
 @app.before_first_request
 def before_first_request():
@@ -75,6 +79,11 @@ def download_registry_model():
         }
     
     """
+
+    if 'COMET_API_KEY' not in os.environ.keys():
+        app.logger.error(f"Please define the COMET_API_KEY.")
+        return ('', 401)
+
     api = comet_ml.api.API(api_key=os.environ.get('COMET_API_KEY'))
 
     # Get POST json data
@@ -102,7 +111,7 @@ def download_registry_model():
     # If yes, load that model and write to the log about the model change.  
     if is_downloaded:
         with open(os.path.join(model_path, filename), 'rb') as f:
-            model = cloudpickle.load(f)
+            model = pickle.load(f)
         app.logger.info(f"Loaded {model_name} (already downloaded).")
     else:
         # If no, try downloading the model: if it succeeds, load that model and write to the log about the model change. If it fails, write to the log about the failure and keep the currently loaded model.
@@ -110,10 +119,12 @@ def download_registry_model():
             api.download_registry_model(workspace, model_name, version, output_path=model_path)
             app.logger.info(f"Downloaded {filename}.")
             with open(os.path.join(model_path, filename), 'rb') as f:
-                model = cloudpickle.load(f)
+                model = pickle.load(f)
             app.logger.info(f"Loaded {model_name}.")
-        except:
+        except Exception as e:
             app.logger.error(f"Failed to download model {model_name}, keeping current model.")
+            app.logger.error(e)
+
     # app.logger.info(str(model)) # error because the pipelines of the model registry do not have a str function
     return ('', 204)
     # Tip: you can implement a "CometMLClient" similar to your App client to abstract all of this
@@ -139,16 +150,25 @@ def predict():
     app.logger.info("DataFrame Shape = " + str(X.shape))
 
     # TODO: Load MinMaxScaler (fitted on train data) and transform input with it
-    preds = model.predict_proba(X)[:,1]
-    response = preds.tolist()
+    try:
+        preds = model.predict_proba(X)[:,1]
+        response = preds.tolist()
+        app.logger.info("Shot probability = " + str(response))
+    except Exception as e:
+        app.logger.error("Failed to predict")
+        app.logger.error(e)
+        response = []
 
-    app.logger.info("Shot probability = " + str(response))
     return jsonify(response)  # response must be json serializable!
 
 # Custom routes for testing
 @app.route("/")
 def default():
     """Testing if Flask works."""
-    """Start server with gunicorn --bind 0.0.0.0:6758 app:app"""
-    """To check this page go to http://127.0.0.1:6758/"""
+    """Start server with gunicorn --bind 0.0.0.0:5000 app:app"""
+    """To check this page go to http://127.0.0.1:5000/"""
     return open("flask.log").readlines()
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True)

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class ServingClient:
-    def __init__(self, ip: str = "0.0.0.0", port: int = 6758):
+    def __init__(self, ip: str = "0.0.0.0", port: int = 5000):
         self.base_url = f"http://{ip}:{port}"
         logger.info(f"Initializing client; base URL: {self.base_url}")
 
@@ -91,24 +91,3 @@ class ServingClient:
             json = json.dumps(request_dict))
 
         return {}
-
-
-if __name__ == "__main__":
-
-    sc = ServingClient()
-
-    # Send a download request
-    workspace = "ift6758-a22-g08"
-    model = "randomforest-allfeatures"
-    version = "1.0.0"
-    # print(sc.download_registry_model(workspace, model, version))
-
-    # Get the logs
-    print(sc.logs())
-
-    season_year = 2018
-    season_type = "Regular"
-    game_number = 20
-    features_df = FeaturesManager.build_features_one_game(season_year, season_type, game_number, with_player_stats=True, with_strength_stats=True)
-
-    print(sc.predict(features_df))
