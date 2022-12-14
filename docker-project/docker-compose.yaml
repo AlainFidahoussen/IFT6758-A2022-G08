@@ -3,7 +3,7 @@ version: '3'
 
 services:
   serving:
-    image: ift6758-serving:latest
+    image: ift6758-serving:1.0.0
     build:
       context: .
       dockerfile: ./Dockerfile.serving

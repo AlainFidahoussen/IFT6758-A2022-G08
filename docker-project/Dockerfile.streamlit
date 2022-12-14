@@ -24,7 +24,7 @@ ADD ift6758 ./ift6758
 #
 # Run a shell command (tip: chain shell commands with && rather than multiple RUN commands)
 # https://docs.docker.com/engine/reference/builder/#run
-RUN  pip install --upgrade pip && pip install -e ift6758 && pip install -r ift6758/requirements.txt
+RUN  pip install --upgrade pip && pip install -e ift6758
 # RUN  pip install --upgrade pip && pip install -r requirements.txt
 
 # The main docker commands you will find useful:
