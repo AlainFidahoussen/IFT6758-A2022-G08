@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import requests
 
 import serving_client
@@ -105,8 +106,56 @@ with st.container():
 st.markdown('')
 
 with st.container(): # TODO: Bonus
-    power = st.slider('What power?', 0, 10, 1)
-    fig, ax = plt.subplots()
-    data = [i ** power for i in range(10)]
-    ax.plot(data)
-    st.pyplot(fig)
+    if ping_button:
+        # power = st.slider('What power?', 0, 10, 1)
+        # fig, ax = plt.subplots()
+        # data = [i ** power for i in range(10)]
+        # ax.plot(data)
+        # st.pyplot(fig)
+
+        fig = plt.figure(figsize = (10, 5), dpi=100)
+        img = mpimg.imread("./figures/nhl_rink.png")
+        plt.imshow(img, extent=[-100.0, 100.0, -42.5, 42.5])
+
+        plt.xlabel('feet')
+        plt.ylabel('feet')
+        desc = data['liveData']['plays']['currentPlay']['result']['description']
+
+        if data['gameData']['status']['abstractGameState'] != 'Preview':
+            plt.suptitle(f'{desc}\n{time_remaining} P-{period}')
+        else:
+            pass
+        
+
+        try:
+            home_side = data['liveData']['linescore']['periods'][int(period)-1]['home']['rinkSide']
+            away_side = data['liveData']['linescore']['periods'][int(period)-1]['away']['rinkSide']
+            # home_side = int(period['home']['rinkSide'])-1
+            # away_side = int(period['away']['rinkSide'])-1
+
+            if 'startTime' in data['liveData']['linescore']['shootoutInfo']:
+                home_side = data['liveData']['linescore']['periods'][2]['home']['rinkSide']
+                away_side = data['liveData']['linescore']['periods'][2]['away']['rinkSide']
+            else:
+                pass
+            
+            title_away_abb = data['gameData']['teams']['away']['abbreviation']
+            title_home_abb = data['gameData']['teams']['home']['abbreviation']
+
+            if home_side == 'right':
+                plt.title('{}{}'.format(title_away_abb.center(60), title_home_abb.center(60)), horizontalalignment='center')
+            else:
+                plt.title('{}{}'.format(title_home_abb.center(60), title_away_abb.center(60)), horizontalalignment='center')
+        except:
+            pass
+
+        try: # plot event if exists
+            x_coord = data['liveData']['plays']['currentPlay']['about']['coordinates']['x']
+            y_coord = data['liveData']['plays']['currentPlay']['about']['coordinates']['y']
+            plt.plot(x_coord, y_coord, marker='o', color='blue', markersize=10)
+
+            plt.show()
+        except:
+            pass
+        
+        st.pyplot(fig)
