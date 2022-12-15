@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append(r"C:\Users\anniw\IFT6758-A2022-G08\docker-project\ift6758\ift6758\client")
+sys.path.append(r"/mnt/c/Users/anniw/IFT6758-A2022-G08/docker-project/ift6758/ift6758/client")
 
 from dotenv import load_dotenv
 load_dotenv();
@@ -16,8 +16,17 @@ import requests
 import serving_client
 import game_client
 
+# global all_data
+# all_data = []
+
+# global gc
+# gc = game_client.GameClient()
+# st.session_state['all_data'] = []
+# st.session_state['game_client'] = gc
+# st.session_state['test'] = 0
 
 st.title("Hockey Visualization App")
+
 
 with st.sidebar:
     # TODO: Add input for the sidebar
@@ -48,10 +57,19 @@ with st.container():
             season_type = 'Playoffs'
         game_number = int(game_id[6:].lstrip('0'))
 
-        gc = game_client.GameClient()
-        df_features = gc.ping_game(season_year, season_type, game_number)
-        # df_features_out = sc.predict(df_features)
         
+        if 'game_client' not in st.session_state:
+            st.session_state['game_client'] = game_client.GameClient()
+            
+        df_features = st.session_state['game_client'].ping_game(season_year, season_type, game_number)
+        sc = serving_client.ServingClient()
+        df_features_out = sc.predict(df_features)
+    
+        if 'all_data' not in st.session_state:
+            st.session_state['all_data'] = []
+        st.session_state['all_data'].append(df_features_out)
+        
+
 
 st.markdown('')
 
@@ -76,18 +94,19 @@ with st.container():
         col1, col2 = st.columns(2)
         home_actual_goal = int(data['liveData']['plays']['currentPlay']['about']['goals']['home'])
         away_actual_goal = int(data['liveData']['plays']['currentPlay']['about']['goals']['away'])
-        # full_home_name = f'{home_team} ({home_team_abb})'
-        # full_away_name = f'{away_team} ({away_team_abb})'
-        # home_predict_goal = df_features_out[df_features_out['Team'] == full_home_name]['Shot probability'].sum() 
-        # away_predict_goal = df_features_out[df_features_out['Team'] == full_away_name]['Shot probability'].sum() 
-        # home_diff = str(home_predict_goal - home_actual_goal)
-        # away_diff = str(away_predict_goal - away_actual_goal)
-
-        # Test  
-        home_predict_goal = 3.2 
-        away_predict_goal = 1.4
+        full_home_name = f'{home_team} ({home_team_abb})'
+        full_away_name = f'{away_team} ({away_team_abb})'
+        df = pd.concat(st.session_state['all_data'])
+        home_predict_goal = round(df[df['Team'] == full_home_name]['Shot probability'].sum(), 2)
+        away_predict_goal = round(df[df['Team'] == full_away_name]['Shot probability'].sum(), 2)
         home_diff = str(round(home_predict_goal - home_actual_goal, 2))
         away_diff = str(round(away_predict_goal - away_actual_goal, 2))
+
+        # Test  
+        # home_predict_goal = 3.2 
+        # away_predict_goal = 1.4
+        # home_diff = str(round(home_predict_goal - home_actual_goal, 2))
+        # away_diff = str(round(away_predict_goal - away_actual_goal, 2))
 
         col1.metric(f'{home_team} xG (actual)', f'{home_predict_goal} ({home_actual_goal})', home_diff)
         col1.metric(f'{away_team} xG (actual)', f'{away_predict_goal} ({away_actual_goal})', away_diff)
@@ -101,7 +120,8 @@ with st.container():
         st.subheader('Data used for predictions (and predictions)')
         # df = pd.DataFrame(np.random.randn(50,20), 
         #                  columns=('col %d' % i for i in range(20)))
-        st.dataframe(df_features)
+    
+        st.dataframe(df)
     
 st.markdown('')
 
