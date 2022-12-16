@@ -16,7 +16,7 @@ To build and run the docker serving, the build.sh and run.sh scripts can be used
 ./run.sh
 ```
 
-To build both streamlit and serving dockers, the following command, from the root directory, can be used:
+To build both the streamlit and serving dockers, the following command, from the root directory, can be used:
 ```bash
 docker compose up
 ```
