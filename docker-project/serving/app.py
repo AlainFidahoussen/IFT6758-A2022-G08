@@ -1,33 +1,23 @@
-"""
-If you are in the same directory as this file (app.py), you can run run the app using gunicorn:
-    
-    $ gunicorn --bind 0.0.0.0:<PORT> app:app
-
-gunicorn can be installed via:
-
-    $ pip install gunicorn
-
-"""
 import os
-from pathlib import Path
 import logging
 from flask import Flask, jsonify, request, abort
-import sklearn
 import pandas as pd
-import joblib
+import numpy as np
 import comet_ml
-import pickle
-
-import sys
-sys.path.append('../')
-import ift6758
-
-LOG_FILE = os.environ.get("FLASK_LOG", "flask.log")
+import cloudpickle as pickle
+# import pickle5 as pickle
+import json
 
 app = Flask(__name__)
 
-model = None
-model_path = "../models"
+cache = {}
+
+LOG_FILE = os.environ.get("FLASK_LOG", "flask.log")
+MODEL_DIR = os.environ.get("MODEL_DIR", "./comet_models")
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+# http://0.0.0.0:5555/predict
+
 
 @app.before_first_request
 def before_first_request():
@@ -35,19 +25,16 @@ def before_first_request():
     Hook to handle any initialization before the first request (e.g. load model,
     setup logging handler, etc.)
     """
-    # Setup basic logging configuration
-    logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+    # Setup logger
+    format = "%(asctime)s;%(levelname)s;%(message)s"
+    logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format=format)
+
 
 @app.route("/logs", methods=["GET"])
-def logs():
-    """Reads data from the log file and returns them as the response"""
-    
-    # Read the log file specified and return the data
-    with open("flask.log") as f:
-        response = f.readlines()
-
-    return jsonify(response)  # response must be json serializable!
-
+def get_logs():
+    with open(LOG_FILE) as f:
+        data = f.read().splitlines()
+    return jsonify(data)
 
 @app.route("/download_registry_model", methods=["POST"])
 def download_registry_model():
@@ -66,46 +53,56 @@ def download_registry_model():
         }
     
     """
+
+    if 'COMET_API_KEY' not in os.environ.keys():
+        app.logger.error(f"Please define the COMET_API_KEY.")
+        return ('', 401)
+
     api = comet_ml.api.API(api_key=os.environ.get('COMET_API_KEY'))
 
     # Get POST json data
-    json = request.get_json()
-    app.logger.info(json)
+    data = json.loads(request.get_json())
 
     # Check to see if the model you are querying for is already downloaded
-    workspace = json['workspace']
-    model_name = json['model']
-    version = json['version']
+    workspace = data['workspace']
+    model_name = data['model']
+    version = data['version']
+
+    app.logger.info("Request = " + str(data))
+
 
     # Convert model name to find model file
     try:
         # app.logger.info(api.get_registry_model_details(workspace, model_name, version)["assets"])
         filename = api.get_registry_model_details(workspace, model_name, version)["assets"][0]["fileName"]
     except:
-        app.logger.info(f"Could not find {model_name}.")
+        app.logger.error(f"Could not find {model_name}.")
         return ('', 401)
-    is_downloaded = filename in os.listdir("../models")
-    global model
+
+    is_downloaded = filename in os.listdir(MODEL_DIR)
     
     # If yes, load that model and write to the log about the model change.  
     if is_downloaded:
-        with open(os.path.join(model_path, filename), 'rb') as f:
-            model = pickle.load(f)
+        with open(os.path.join(MODEL_DIR, filename), 'rb') as f:
+            cache['model'] = pickle.load(f)
         app.logger.info(f"Loaded {model_name} (already downloaded).")
     else:
         # If no, try downloading the model: if it succeeds, load that model and write to the log about the model change. If it fails, write to the log about the failure and keep the currently loaded model.
         try:
-            api.download_registry_model(workspace, model_name, version, output_path=model_path)
+            api.download_registry_model(workspace, model_name, version, output_path=MODEL_DIR)
             app.logger.info(f"Downloaded {filename}.")
-            with open(os.path.join(model_path, filename), 'rb') as f:
-                model = pickle.load(f)
+            with open(os.path.join(MODEL_DIR, filename), 'rb') as f:
+                cache['model'] = pickle.load(f)
             app.logger.info(f"Loaded {model_name}.")
-        except:
-            app.logger.info(f"Failed to download model {model_name}, keeping current model.")
-    app.logger.info(str(model))
+        except Exception as e:
+            app.logger.error(f"Failed to download model {model_name}, keeping current model.")
+            app.logger.error(e)
+
+    # app.logger.info(str(model)) # error because the pipelines of the model registry do not have a str function
     return ('', 204)
     # Tip: you can implement a "CometMLClient" similar to your App client to abstract all of this
     # logic and querying of the CometML servers away to keep it clean here
+
 
 
 @app.route("/predict", methods=["POST"])
@@ -115,27 +112,38 @@ def predict():
 
     Returns predictions
     """
-    if model == None:
+
+    if 'model' not in cache.keys():
         # No model has been loaded yet
-        return "No model loaded!", 403
+        app.logger.error(f"No model loaded!")
+        return jsonify([])
 
     # Get POST json data
     json = request.get_json()
 
     X = pd.DataFrame.from_dict(json)
-    app.logger.info(X.head())
-    # TODO: Load MinMaxScaler (fitted on train data) and transform input with it
-    preds = model.predict_proba(X)
-    response = preds.tolist()
+    app.logger.info("DataFrame Shape = " + str(X.shape))
+    if X.shape[0] == 0:
+        app.logger.warning("Empty DataFrame!")
+        response = []
 
-    app.logger.info(response)
+    else:
+        try:
+            preds = cache['model'].predict_proba(X)[:,1]
+            response = preds.tolist()
+            app.logger.info("Shot probability Sum = " + str(np.array(response).sum()))
+        except Exception as e:
+            app.logger.error("Failed to predict")
+            app.logger.error(e)
+            response = []
+
     return jsonify(response)  # response must be json serializable!
 
-# Custom routes for testing
+
+
 @app.route("/")
 def default():
     """Testing if Flask works."""
-    """Start server with gunicorn --bind 0.0.0.0:6758 app:app"""
-    """To check this page go to http://127.0.0.1:6758/"""
-    app.logger.info("Hello World!")
-    return "Hello World"
+    """Start server with gunicorn --bind 0.0.0.0:5000 app:app"""
+    """To check this page go to http://127.0.0.1:5000/"""
+    return open(LOG_FILE).readlines()

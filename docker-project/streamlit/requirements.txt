@@ -1,0 +1,7 @@
+setuptools
+streamlit
+requests
+matplotlib
+pandas
+seaborn
+scipy

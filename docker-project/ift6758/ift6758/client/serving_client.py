@@ -1,17 +1,10 @@
-from dotenv import load_dotenv
-load_dotenv();
-
 import os
 import sys
-sys.path.insert(0, os.path.join(os.environ['NHL_DATA_DIR'], '..'))
 
 import json
 import requests
 import pandas as pd
 import logging
-import src.features.build_features as FeaturesManager
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +26,10 @@ class ServingClient:
         Args:
             X (Dataframe): Input dataframe to submit to the prediction service.
         """
+
+        if X.empty:
+            df_empty = pd.DataFrame()
+            return df_empty
 
         # Remove the ground truth
         X_features = X.drop(labels=['Is Goal'], axis=1)

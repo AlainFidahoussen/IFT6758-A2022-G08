@@ -1,68 +1,23 @@
-# To build a container, you will use the docker build command
-# https://docs.docker.com/engine/reference/commandline/build/
-#
-#   docker build -t <IMAGE TAG> -f Dockerfile.serving .
-#   docker build -t <IMAGE TAG> -f Dockerfile.jupyter .
-#
-
-
-# https://docs.docker.com/engine/reference/builder/#from
-# You shouldn't need to change this
 FROM python:3.9
 
-# https://docs.docker.com/engine/reference/builder/#workdir
-# Create and cd into /code as your working directory
 WORKDIR /code
 
+# Install codebase
+ADD ./streamlit ./streamlit
+RUN pip install wheel && \ 
+    pip install -r streamlit/requirements.txt
 
-#
-# Install librairies using pip
-# https://docs.docker.com/engine/reference/builder/#copy
-# COPY ift6758/requirements.txt ./
-ADD ift6758 ./ift6758
+# Add application
+ADD ./streamlit/app.py ./app.py
+ADD ./ift6758/ift6758/client/game_client.py ./game_client.py
+ADD ./ift6758/ift6758/client/serving_client.py ./serving_client.py
+ADD ./ift6758/ift6758/data/NHLDataManager.py ./data/NHLDataManager.py
+ADD ./ift6758/ift6758/features/build_features.py ./features/build_features.py
+ADD ./ift6758/ift6758/visualization/visualize.py ./visualization/visualize.py
+ADD ./ift6758/ift6758/figures/nhl_rink.png ./figures/nhl_rink.png
 
-#
-# Run a shell command (tip: chain shell commands with && rather than multiple RUN commands)
-# https://docs.docker.com/engine/reference/builder/#run
-RUN  pip install --upgrade pip && pip install -e ift6758
-# RUN  pip install --upgrade pip && pip install -r requirements.txt
+ENV STREAMLIT_PORT=8892
+EXPOSE ${STREAMLIT_PORT}
 
-# The main docker commands you will find useful:
-# 
-# Add a file or directory
-# https://docs.docker.com/engine/reference/builder/#add
-#
-ADD streamlit_app.py app.py
-#
-# Run a shell command (tip: chain shell commands with && rather than multiple RUN commands)
-# https://docs.docker.com/engine/reference/builder/#run
-#
-#       RUN <SHELL COMMAND>   
-#
-# Set an environment variable:
-# https://docs.docker.com/engine/reference/builder/#env
-#
-#       ENV <ENV_VAR>=<DEFAULT>
-#
-# Expose a port
-# https://docs.docker.com/engine/reference/builder/#port
-EXPOSE 5000
-
-#
-# Provide default command for executing container
-# https://docs.docker.com/engine/reference/builder/#cmd
-CMD ["streamlit" , "run", "streamlit_app.py", "--server.port", "5000", "--server.address", "127.0.0.1"]
-
-
-
-# TODO: add code, optionally a default model if you want 
-
-
-# TODO: install libs
-
-
-# TODO: expose ports (or do this in docker-compose)
-
-
-# TODO: specify default command - this is not required because you can always specify the command
-# either with the docker run command or in the docker-compose file
+# ENTRYPOINT ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD streamlit run app.py --server.port=8892 --server.address=0.0.0.0
