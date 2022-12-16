@@ -5,7 +5,7 @@ To build and run the dockers, you must define your COMET_API_KEY environment var
 ```bash
  export COMET_API_KEY=<your key>
 ```
- - or by defining it in a .env file placed on the root directory.
+ - or defining it in a .env file placed on the root directory.
 
 ## Docker
 The dockers only work on Linux for now (or WSL on Windows).
