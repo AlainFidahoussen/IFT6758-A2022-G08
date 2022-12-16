@@ -1,0 +1,3 @@
+[submodule "IFT6758-A2022-G08-Docker"]
+	path = IFT6758-A2022-G08-Docker
+	url = https://github.com/AlainFidahoussen/IFT6758-A2022-G08-Docker.git
