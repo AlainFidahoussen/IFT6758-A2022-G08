@@ -146,36 +146,78 @@ with st.container(): # TODO: Bonus
         else:
             pass
         
+        x_coord_shot = df[df['Type'] == 'Shot']['X']
+        y_coord_shot = df[df['Type'] == 'Shot']['Y']
 
-        try:
-            home_side = data['liveData']['linescore']['periods'][int(period)-1]['home']['rinkSide']
-            away_side = data['liveData']['linescore']['periods'][int(period)-1]['away']['rinkSide']
-            # home_side = int(period['home']['rinkSide'])-1
-            # away_side = int(period['away']['rinkSide'])-1
+        x_coord_goal = df[df['Type'] == 'Goal']['X']
+        y_coord_goal = df[df['Type'] == 'Goal']['Y']
 
-            if 'startTime' in data['liveData']['linescore']['shootoutInfo']:
-                home_side = data['liveData']['linescore']['periods'][2]['home']['rinkSide']
-                away_side = data['liveData']['linescore']['periods'][2]['away']['rinkSide']
-            else:
-                pass
+        plt.scatter(x_coord_shot, y_coord_shot, marker='o', color='blue')
+        plt.scatter(x_coord_goal, y_coord_goal, marker='x', color='red')
+        plt.show()
+        # try:
+        #     home_side = data['liveData']['linescore']['periods'][int(period)-1]['home']['rinkSide']
+        #     away_side = data['liveData']['linescore']['periods'][int(period)-1]['away']['rinkSide']
+        #     # home_side = int(period['home']['rinkSide'])-1
+        #     # away_side = int(period['away']['rinkSide'])-1
+
+        #     if 'startTime' in data['liveData']['linescore']['shootoutInfo']:
+        #         home_side = data['liveData']['linescore']['periods'][2]['home']['rinkSide']
+        #         away_side = data['liveData']['linescore']['periods'][2]['away']['rinkSide']
+        #     else:
+        #         pass
             
-            title_away_abb = data['gameData']['teams']['away']['abbreviation']
-            title_home_abb = data['gameData']['teams']['home']['abbreviation']
+        #     title_away_abb = data['gameData']['teams']['away']['abbreviation']
+        #     title_home_abb = data['gameData']['teams']['home']['abbreviation']
 
-            if home_side == 'right':
-                plt.title('{}{}'.format(title_away_abb.center(60), title_home_abb.center(60)), horizontalalignment='center')
-            else:
-                plt.title('{}{}'.format(title_home_abb.center(60), title_away_abb.center(60)), horizontalalignment='center')
-        except:
-            pass
+        #     if home_side == 'right':
+        #         plt.title('{}{}'.format(title_away_abb.center(60), title_home_abb.center(60)), horizontalalignment='center')
+        #     else:
+        #         plt.title('{}{}'.format(title_home_abb.center(60), title_away_abb.center(60)), horizontalalignment='center')
+        # except:
+        #     pass
 
-        try: # plot event if exists
-            x_coord = data['liveData']['plays']['currentPlay']['about']['coordinates']['x']
-            y_coord = data['liveData']['plays']['currentPlay']['about']['coordinates']['y']
-            plt.plot(x_coord, y_coord, marker='o', color='blue', markersize=10)
+        # try: # plot event if exists
+        #     x_coord = data['liveData']['plays']['currentPlay']['about']['coordinates']['x']
+        #     y_coord = data['liveData']['plays']['currentPlay']['about']['coordinates']['y']
+        #     plt.plot(x_coord, y_coord, marker='o', color='blue', markersize=10)
 
-            plt.show()
-        except:
-            pass
+        #     plt.show()
+        # except:
+        #     pass
         
         st.pyplot(fig)
+
+# with st.container(): # TODO: Bonus
+#     if ping_button:
+#         gc1 = game_client.GameClient()
+#         hists, x_bins, y_bins = gc1.get_heatmap(df)
+
+#         team0 = list(hists.keys())[0]
+#         v = list(hists.values())[0]
+
+#         rink_img = (255 * mpimg.imread("./figures/nhl_rink.png")).astype(int)
+#         (h, w, c) = rink_img.shape
+#         rink_half_img = rink_img[:, int(w/2):, :]
+
+#         fig0 = plt.figure(figsize=(6, 6))
+#         plt.contourf(x_bins, y_bins, v, alpha=0.8, cmap='bwr', levels = np.linspace(v.min(), v.max(), 15))
+#         plt.colorbar(orientation = 'vertical')
+#         plt.imshow(rink_half_img, extent=[0, 100,-42.5, 42.5])
+
+#         st.pyplot(fig0)
+
+
+#         team1 = list(hists.keys())[1]
+#         v = list(hists.values())[1]
+
+#         rink_img = (255 * mpimg.imread("./figures/nhl_rink.png")).astype(int)
+#         (h, w, c) = rink_img.shape
+#         rink_half_img = rink_img[:, int(w/2):, :]
+
+#         fig1 = plt.figure(figsize=(6, 6))
+#         plt.contourf(x_bins, y_bins, v, alpha=0.8, cmap='bwr', levels = np.linspace(v.min(), v.max(), 15))
+#         plt.colorbar(orientation = 'vertical')
+#         plt.imshow(rink_half_img, extent=[0, 100,-42.5, 42.5])
+
+#         st.pyplot(fig1)

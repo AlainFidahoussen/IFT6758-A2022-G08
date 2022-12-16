@@ -1,4 +1,12 @@
-import src.features.build_features as FeaturesManager
+import os
+import sys
+import inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir) 
+
+import features.build_features as FeaturesManager
 
 import datetime
 
@@ -17,46 +25,17 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 
 class NHLDataManager:
 
-    def __init__(self, data_dir=""):
+    def __init__(self):
         """Constructor method.
-
-        :param data_dir: directory where the data will be downloaded. Created if it does not exist
-                         If not specified, the NHL_DATA_DIR environement variable will be used. 
-                         If the NHL_DATA_DIR environement variable does not exist, it will be asked by the constructor
-        :type data_dir: str (optional)
         """
 
         self.season_min = 1950
         self.season_max = datetime.date.today().year
         self._season_types = ["Regular", "Playoffs"]
 
-        if data_dir != "":
-            self._data_dir = data_dir
-            os.makedirs(self._data_dir, exist_ok=True)
-
-        else:
-
-            if 'NHL_DATA_DIR' in os.environ:
-                self._data_dir = os.environ['NHL_DATA_DIR']
-                #print(f'This is your NHL_DATA_DIR environment: {self._data_dir}')
-                os.makedirs(self._data_dir, exist_ok=True)
-            else:
-                print('Please set the NHL_DATA_DIR environment variable')
-                self._data_dir = ""
-
-
-    @property
-    def data_dir(self):
-        return self._data_dir
-
     @property
     def season_types(self):
         return self._season_types
-
-    @data_dir.setter
-    def data_dir(self, data_dir: str):
-        os.makedirs(data_dir, exist_ok=True)
-        self._data_dir = data_dir
 
 
     def _get_game_url(self, game_id: str) -> str:
@@ -189,31 +168,11 @@ class NHLDataManager:
         :rtype: dict
         """
 
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return {}
-
-        path_output = os.path.join(self.data_dir, "raw", str(season_year), "Players")
-        os.makedirs(path_output, exist_ok=True)
-
-        player_id_path = os.path.join(path_output, f'{player_id}.json')
-
-        # If the json has already been download, just read it 
-        if os.path.exists(player_id_path):
-            try:
-                with open(player_id_path, "r") as f:
-                    json_dict = json.load(f)
-                return json_dict
-            except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
-                pass
-
         # If not, download and save the json
         url = self._get_player_stats_url(player_id, season_year)
         r = requests.get(url)
         if r.status_code == 200:
             data_json = r.json()
-            with open(player_id_path, "w") as f:
-                json.dump(data_json, f, indent=4)
             return data_json
         else:
             return {}
@@ -232,36 +191,17 @@ class NHLDataManager:
         :rtype: dict
         """
 
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return {}
-
         if not self.validate_season(season_year, season_type):
             print('Invalid season.')
             return {}
 
-        path_output = os.path.join(self.data_dir, "raw", str(season_year), season_type)
-
-        os.makedirs(path_output, exist_ok=True)
         game_id = self.get_game_id(season_year, season_type, game_number)
-        game_id_path = os.path.join(path_output, f'{game_id}.json')
-
-        # If the json has already been download, just read it 
-        if os.path.exists(game_id_path):
-            try:
-                with open(game_id_path, "r") as f:
-                    json_dict = json.load(f)
-                return json_dict
-            except json.JSONDecodeError: # if the json file is not valid, retrieve it from the API
-                pass
 
         # If not, download and save the json
         url = self._get_game_url(f'{game_id}')
         r = requests.get(url)
         if r.status_code == 200:
             data_json = r.json()
-            with open(game_id_path, "w") as f:
-                json.dump(data_json, f, indent=4)
             return data_json
         else:
             return {}
@@ -280,9 +220,6 @@ class NHLDataManager:
         :type path_output: str
         """
 
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return None
 
         pbar_season = tqdm(seasons_year, position=0)
         for season_year in pbar_season:
@@ -291,9 +228,6 @@ class NHLDataManager:
 
             if not self.validate_season(season_year, season_type):
                 continue
-
-            path_data = os.path.join(self.data_dir, "raw", str(season_year), season_type)
-            os.makedirs(path_data, exist_ok=True)
 
             if not self.validate_season(season_year, season_type):
                 print(f'Cannot download season {season_year}')
@@ -307,16 +241,14 @@ class NHLDataManager:
 
                 # Build the game id and get the path to load/save the json file
                 game_id = self.get_game_id(season_year, season_type, game_number)
-                game_id_path = os.path.join(path_data, f'{game_id}.json')
 
                 # If the json has not already been download yet, do it!
-                if not os.path.exists(game_id_path):
-                   url = self._get_game_url(f'{game_id}')
-                   r = requests.get(url)
-                   if r.status_code == 200:
-                       data_json = r.json()
-                       with open(game_id_path, "w") as f:
-                           json.dump(data_json, f, indent=4)
+                url = self._get_game_url(f'{game_id}')
+                r = requests.get(url)
+                if r.status_code == 200:
+                    data_json = r.json()
+                    with open(game_id_path, "w") as f:
+                        json.dump(data_json, f, indent=4)
 
         return None
 
@@ -335,15 +267,9 @@ class NHLDataManager:
         if not self.validate_season(season_year, season_type):
             return {}
 
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return {}
-
         nhl_data = {}
 
         game_numbers = self.get_game_numbers(season_year, season_type)
-        path_data = os.path.join(self.data_dir, "raw", str(season_year), season_type)
-        os.makedirs(path_data, exist_ok=True)
 
         pbar_game = tqdm(game_numbers)
         for game_number in pbar_game:
@@ -351,70 +277,6 @@ class NHLDataManager:
             nhl_data[game_number] = self.load_game(season_year, season_type, game_number)
 
         return nhl_data
-
-
-    def _get_game_ids(self, season_year:int, season_type:str) -> list:
-        """Return the list of game_id for a specific season year and type (regular or playoffs)
-
-        :param season_year: specific season year
-        :type season_year: int
-        :param season_type: 'Regular' or 'Playoffs'
-        :type season_type: str
-        :param path_data: path where the data will be [read if exist] - [stored if not]
-        :type path_data: str
-        :return: the list of game_id (8 digits)
-        :rtype: list[int]
-        """
-
-        if not self.validate_season(season_year, season_type):
-            return []
-
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return []
-
-        path_data = os.path.join(self.data_dir,  "raw", str(season_year), season_type)
-
-        if not os.path.exists(path_data):
-            self.download_data(seasons_year=[season_year], season_type=season_type)
-
-        json_files = os.listdir(path_data)
-        json_files = [f for f in json_files if f.endswith('.json')]
-
-        games_id = [int(f[0:8]) for f in json_files]
-
-        return games_id
-
-
-    def get_game_numbers_from_data(self, season_year:int, season_type:str) -> list:
-        """Return the list of game number for a specific season year and type (regular or playoffs)
-
-        :param season_year: specific season year
-        :type season_year: int
-        :param season_type: 'Regular' or 'Playoffs'
-        :type season_type: str
-        :return: the list of game number (3 or 4 digits)
-        :rtype: list[int]
-        """
-
-        if not self.validate_season(season_year, season_type):
-            return []
-
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return []
-
-        path_data = os.path.join(self.data_dir,  "raw", str(season_year), season_type)
-
-        if not os.path.exists(path_data):
-            self.download_data(seasons_year=[season_year], season_type=season_type)
-
-        json_files = os.listdir(path_data)
-        json_files = [f for f in json_files if f.endswith('.json')]
-
-        games_number = [int(f[6:10]) for f in json_files]
-
-        return games_number
 
 
 
@@ -760,26 +622,13 @@ class NHLDataManager:
         if not self.validate_season(season_year, season_type):
             return []
 
-        if self.data_dir == "":
-            print('The data directory is not defined, please defined it before to continue.')
-            return []
 
-        dir_csv = os.path.join(self.data_dir, "processed", "csv")
-        filename = f'{season_year}_{season_type}.csv'
-        path_csv = os.path.join(dir_csv, filename)
-        if os.path.exists(path_csv):
-            data_season_df = pd.read_csv(path_csv, dtype={'Game ID': str})
-        else:
-            os.makedirs(dir_csv, exist_ok=True)
+        game_numbers = self.get_game_numbers(season_year=season_year, season_type=season_type)
 
-            game_numbers = self.get_game_numbers(season_year=season_year, season_type=season_type)
+        data_season_list = [self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number) 
+                            for game_number in game_numbers]
 
-            data_season_list = [self.get_goals_and_shots_df_standardised(season_year=season_year, season_type=season_type, game_number=game_number) 
-                                for game_number in game_numbers]
-
-            data_season_df = pd.concat([d for d in data_season_list if d is not None], ignore_index=True)
-            data_season_df.to_csv(path_csv, index=False)
-
+        data_season_df = pd.concat([d for d in data_season_list if d is not None], ignore_index=True)
 
         return data_season_df
 
