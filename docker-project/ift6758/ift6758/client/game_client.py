@@ -9,7 +9,6 @@ sys.path.insert(0, parentdir)
 import serving_client
 import pandas as pd
 
-import data.NHLDataManager as DataManager
 import features.build_features as FeaturesManager
 import visualization.visualize as VizManager
 
@@ -23,8 +22,6 @@ class GameClient:
 
 
     def ping_game(self, season_year: str, season_type: str, game_number: str) -> pd.DataFrame:
-
-        data_manager = DataManager.NHLDataManager()
 
         df_features = FeaturesManager.build_features_one_game(
             season_year=season_year, 
