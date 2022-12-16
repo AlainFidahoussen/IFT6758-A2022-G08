@@ -5,7 +5,7 @@ To build and run the dockers, you must define your COMET_API_KEY environment var
 ```bash
  export COMET_API_KEY=<your key>
 ```
- - or by defining it in a .env file placed on the root folder
+ - or by defining it in a .env file placed on the root directory.
 
 ## Docker
 The dockers only work on Linux for now (or WSL on Windows).
@@ -16,12 +16,13 @@ To build and run the docker serving, the build.sh and run.sh scripts can be used
 ./run.sh
 ```
 
-To build both streamlit and serving dockers, the following command can be used:
+To build both streamlit and serving dockers, the following command, from the root directory, can be used:
 ```bash
 docker compose up
 ```
 
 The serving log file is available at the address `http://localhost:8890`.
+
 The streamlit service is available at the address `http://localhost:8892`.
 
 
